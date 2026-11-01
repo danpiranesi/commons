@@ -1,5 +1,12 @@
 # Commons
 
+> **About this repository.** This is a copy of software running in production
+> at a Danish collective, published for external demo purposes. Names, domains,
+> people, places and deployment details have been replaced with placeholders,
+> and a few integrations specific to that community have been removed. The
+> production code lives in a separate private repository; this copy is not
+> kept in sync with it and is not deployed anywhere.
+
 This is the project I am currently working on finishing.
 
 It is a new forum and a resource sharing app that share an
