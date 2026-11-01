@@ -1,0 +1,197 @@
+<%= render(PageHeaderComponent.new(title: t("design.title"), subtitle: t("design.subtitle"))) %>
+
+<%# Resource-type switcher %>
+<div class="flex flex-wrap gap-2 mb-4">
+  <% @resource_types.each do |rt| %>
+    <% active = rt.id == @resource_type.id %>
+    <%= link_to admin_design_path(resource_type_id: rt.id, section: @section),
+          class: "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium border transition-colors #{active ? 'bg-[#7A8C6E] border-[#7A8C6E] text-white' : 'bg-white border-card-border text-primary hover:bg-hover'}" do %>
+      <span class="<%= active ? 'text-white' : 'text-muted' %>"><%= resource_icon(rt.icon) %></span>
+      <%= rt.name %>
+    <% end %>
+  <% end %>
+</div>
+
+<%# Section toggle (Card / Resource Detail / Booking Detail) %>
+<div class="flex gap-1 mb-6 bg-[#E8E6E0] rounded-lg p-1 w-fit">
+  <% [["card", t("design.sections.card")], ["resource_detail", t("design.sections.resource_detail")], ["booking_detail", t("design.sections.booking_detail")]].each do |sec, label| %>
+    <%= link_to label,
+          admin_design_path(resource_type_id: @resource_type.id, section: sec),
+          class: "px-4 py-1.5 rounded-md text-sm font-medium transition-colors #{@section == sec ? 'bg-white shadow-sm text-primary' : 'text-muted hover:text-primary'}" %>
+  <% end %>
+</div>
+
+<% if @section == "card" %>
+  <%# ── Card template editor (existing) ──────────────────────────── %>
+  <%= form_with url: admin_design_path, method: :patch,
+        data: { controller: "design-editor",
+                "design-editor-sample-value": @sample_values.to_json,
+                "design-editor-fields-value": @fields.to_h.to_json } do %>
+    <%= hidden_field_tag :resource_type_id, @resource_type.id %>
+    <%= hidden_field_tag :section, "card" %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4">
+        <% ResourceCardTemplate::SLOTS.each do |slot| %>
+          <%= render(CardComponent.new) do |card| %>
+            <% card.with_header do %>
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-medium"><%= t("design.slots.#{slot}") %></h3>
+                <div class="flex items-center gap-1.5 text-xs text-muted">
+                  <span><%= t("design.separator_label") %></span>
+                  <input type="text" name="template[<%= slot %>][separator]"
+                         value="<%= @template[slot]["separator"] %>"
+                         data-action="input->design-editor#render"
+                         class="form-input w-16 py-1 text-center text-xs" placeholder="·">
+                </div>
+              </div>
+            <% end %>
+
+            <div class="chips flex flex-wrap items-center gap-2 min-h-[2rem]" data-slot="<%= slot %>">
+              <% @template[slot]["fields"].each do |fkey| %>
+                <%= render "admin/design/chip", slot: slot, fkey: fkey %>
+              <% end %>
+            </div>
+
+            <div class="mt-3">
+              <select data-slot="<%= slot %>" data-action="change->design-editor#addField"
+                      class="form-select text-sm py-1.5">
+                <option value=""><%= t("design.add_field") %></option>
+                <% @fields.each do |key, label| %>
+                  <option value="<%= key %>"><%= label %></option>
+                <% end %>
+              </select>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div>
+        <div class="sticky top-6">
+          <div class="text-xs font-medium text-muted uppercase tracking-wider mb-2"><%= t("design.preview") %></div>
+          <div class="bg-white rounded-lg border border-card-border shadow-sm p-4">
+            <div data-design-editor-target="previewTitle" class="text-sm font-medium"></div>
+            <div data-design-editor-target="previewSub1" class="text-xs text-muted"></div>
+            <div data-design-editor-target="previewSub2" class="text-xs text-muted"></div>
+          </div>
+          <p class="text-[11px] text-muted mt-2"><%= t("design.preview_note", name: @sample.display_name) %></p>
+          <div class="mt-4">
+            <%= render(ButtonComponent.new(variant: :primary, full_width: true, type: "submit")) { t("design.save") } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+<% elsif @section == "resource_detail" %>
+  <%# ── Resource detail field visibility editor ───────────────────── %>
+  <%= form_with url: admin_design_path, method: :patch,
+        data: { controller: "detail-editor",
+                "detail-editor-fields-value": @fields.to_h.to_json } do %>
+    <%= hidden_field_tag :resource_type_id, @resource_type.id %>
+    <%= hidden_field_tag :section, "resource_detail" %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header do %>
+            <h3 class="text-sm font-medium"><%= t("design.sections.resource_detail") %></h3>
+          <% end %>
+          <p class="text-sm text-muted mb-4"><%= t("design.resource_detail_hint") %></p>
+
+          <div class="detail-chips flex flex-wrap items-center gap-2 min-h-[2rem] mb-3">
+            <% @detail_template.fields.each do |fkey| %>
+              <span class="chip inline-flex items-center gap-1.5 rounded-full bg-[#E8E6E0] pl-3 pr-1.5 py-1 text-xs" data-field="<%= fkey %>">
+                <input type="hidden" name="detail[fields][]" value="<%= fkey %>">
+                <span><%= t("design.detail_fields.#{fkey}") %></span>
+                <button type="button" data-action="detail-editor#removeField"
+                        class="flex h-4 w-4 items-center justify-center rounded-full text-muted hover:bg-black/10 hover:text-primary leading-none">&times;</button>
+              </span>
+            <% end %>
+          </div>
+
+          <select data-action="change->detail-editor#addField" class="form-select text-sm py-1.5">
+            <option value=""><%= t("design.add_field") %></option>
+            <% @fields.each do |key, label| %>
+              <option value="<%= key %>"><%= label %></option>
+            <% end %>
+          </select>
+        <% end %>
+      </div>
+
+      <div>
+        <div class="sticky top-6">
+          <div class="text-xs font-medium text-muted uppercase tracking-wider mb-2"><%= t("design.preview") %></div>
+          <div class="bg-white rounded-lg border border-card-border shadow-sm p-4 space-y-2 text-sm">
+            <% @detail_template.fields.each do |fkey| %>
+              <div class="flex gap-2">
+                <span class="text-xs text-muted w-28 shrink-0"><%= t("design.detail_fields.#{fkey}") %></span>
+                <span class="text-xs text-muted">—</span>
+              </div>
+            <% end %>
+          </div>
+          <p class="text-[11px] text-muted mt-2"><%= t("design.resource_detail_preview_note") %></p>
+          <div class="mt-4">
+            <%= render(ButtonComponent.new(variant: :primary, full_width: true, type: "submit")) { t("design.save") } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+<% elsif @section == "booking_detail" %>
+  <%# ── Booking detail field visibility editor ────────────────────── %>
+  <%= form_with url: admin_design_path, method: :patch,
+        data: { controller: "detail-editor",
+                "detail-editor-fields-value": @fields.to_h.to_json } do %>
+    <%= hidden_field_tag :resource_type_id, @resource_type.id %>
+    <%= hidden_field_tag :section, "booking_detail" %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header do %>
+            <h3 class="text-sm font-medium"><%= t("design.sections.booking_detail") %></h3>
+          <% end %>
+          <p class="text-sm text-muted mb-4"><%= t("design.booking_detail_hint") %></p>
+
+          <div class="detail-chips flex flex-wrap items-center gap-2 min-h-[2rem] mb-3">
+            <% @booking_template.fields.each do |fkey| %>
+              <span class="chip inline-flex items-center gap-1.5 rounded-full bg-[#E8E6E0] pl-3 pr-1.5 py-1 text-xs" data-field="<%= fkey %>">
+                <input type="hidden" name="detail[fields][]" value="<%= fkey %>">
+                <span><%= t("design.booking_fields.#{fkey}") %></span>
+                <button type="button" data-action="detail-editor#removeField"
+                        class="flex h-4 w-4 items-center justify-center rounded-full text-muted hover:bg-black/10 hover:text-primary leading-none">&times;</button>
+              </span>
+            <% end %>
+          </div>
+
+          <select data-action="change->detail-editor#addField" class="form-select text-sm py-1.5">
+            <option value=""><%= t("design.add_field") %></option>
+            <% @fields.each do |key, label| %>
+              <option value="<%= key %>"><%= label %></option>
+            <% end %>
+          </select>
+        <% end %>
+      </div>
+
+      <div>
+        <div class="sticky top-6">
+          <div class="text-xs font-medium text-muted uppercase tracking-wider mb-2"><%= t("design.preview") %></div>
+          <div class="bg-white rounded-lg border border-card-border shadow-sm p-4 space-y-2 text-sm">
+            <% @booking_template.fields.each do |fkey| %>
+              <div class="flex gap-2">
+                <span class="text-xs text-muted w-28 shrink-0"><%= t("design.booking_fields.#{fkey}") %></span>
+                <span class="text-xs text-muted">—</span>
+              </div>
+            <% end %>
+          </div>
+          <p class="text-[11px] text-muted mt-2"><%= t("design.booking_detail_preview_note") %></p>
+          <div class="mt-4">
+            <%= render(ButtonComponent.new(variant: :primary, full_width: true, type: "submit")) { t("design.save") } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>

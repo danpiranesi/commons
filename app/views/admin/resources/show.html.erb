@@ -1,0 +1,226 @@
+<%= render(PageHeaderComponent.new(title: @resource.display_name, subtitle: @resource.resource_type.name, breadcrumbs: [["Resources", admin_resources_path], [@resource.display_name, nil]])) do |header| %>
+  <% header.with_actions do %>
+    <%= render(ButtonComponent.new(href: edit_admin_resource_path(@resource), variant: :secondary, size: :md)) { t("admin.resources.show.edit_button") } %>
+  <% end %>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <%# Main info %>
+  <div class="lg:col-span-2 space-y-6">
+    <%# Details card %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("admin.resources.show.details_title") %></h3>
+      <% end %>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.status_label") %></dt>
+          <dd>
+            <%= render(BadgeComponent.new(variant: status_variant(@resource.status))) { @resource.status.capitalize } %>
+            <% if @resource.unavailable? %>
+              <div class="text-xs text-muted mt-1">
+                <%= @resource.unavailable_reason %>
+                <% if @resource.unavailable_until %>
+                  <%= t("admin.resources.show.unavailable_until", date: @resource.unavailable_until.strftime("%-d %b %Y")) %>
+                <% end %>
+              </div>
+            <% end %>
+          </dd>
+        </div>
+
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.type_label") %></dt>
+          <dd><%= @resource.resource_type.name %> (<%= billing_type_label(@resource.resource_type.billing_type) %>)</dd>
+        </div>
+
+        <% if @resource.port.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.port_label") %></dt>
+            <dd><%= @resource.port %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.make.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.make_label") %></dt>
+            <dd><%= @resource.make %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.color.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.color_label") %></dt>
+            <dd><%= @resource.color %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.license_number.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.license_number_label") %></dt>
+            <dd><%= @resource.license_number %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.location.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.location_label") %></dt>
+            <dd><%= @resource.location %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.description.present? %>
+          <div class="col-span-2">
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.description_label") %></dt>
+            <dd><%= @resource.description %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.regular_driver.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.regular_driver_label") %></dt>
+            <dd><%= @resource.regular_driver %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.damage_notes.present? %>
+          <div class="col-span-2">
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.damage_notes_label") %></dt>
+            <dd class="text-danger text-sm"><%= @resource.damage_notes %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.inventory_count > 1 %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.inventory_label") %></dt>
+            <dd><%= @resource.inventory_count %> <%= t("admin.resources.show.units") %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.tracks_mileage? && @resource.resource_stat %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("admin.resources.show.current_mileage_label") %></dt>
+            <dd><%= number_with_delimiter(@resource.resource_stat.mileage) %> km</dd>
+          </div>
+        <% end %>
+      </dl>
+    <% end %>
+
+    <%# Pricing card %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("admin.resources.show.pricing_title") %></h3>
+      <% end %>
+
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-muted uppercase tracking-wider">
+            <th class="pb-2 font-medium"><%= t("admin.resources.show.col_user_type") %></th>
+            <th class="pb-2 font-medium"><%= t("admin.resources.show.col_per_hour") %></th>
+            <th class="pb-2 font-medium"><%= t("admin.resources.show.col_day_cap") %></th>
+            <% if @resource.tracks_mileage? %>
+              <th class="pb-2 font-medium"><%= t("admin.resources.show.col_per_km") %></th>
+            <% end %>
+            <th class="pb-2 font-medium"><%= t("admin.resources.show.col_min") %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% User::USER_TYPES.each do |ut| %>
+            <% price = @prices[ut] %>
+            <tr class="border-t border-card-border">
+              <td class="py-2.5 font-medium"><%= ut.capitalize %></td>
+              <td class="py-2.5"><%= price ? "#{number_to_currency(price.hour_rate, unit: '', precision: 0)} DKK" : "—" %></td>
+              <td class="py-2.5"><%= price ? "#{number_to_currency(price.day_rate, unit: '', precision: 0)} DKK" : "—" %></td>
+              <% if @resource.tracks_mileage? %>
+                <td class="py-2.5"><%= price ? "#{price.km_rate} DKK/km" : "—" %></td>
+              <% end %>
+              <td class="py-2.5"><%= price ? "#{number_to_currency(price.min_charge, unit: '', precision: 0)} DKK" : "—" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+
+    <%# Pricing rules %>
+    <% if @pricing_rules.any? %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("admin.resources.show.pricing_rules_title") %></h3>
+        <% end %>
+
+        <div class="space-y-2 text-sm">
+          <% @pricing_rules.each do |rule| %>
+            <div class="flex items-center justify-between py-2 border-b border-card-border last:border-0">
+              <span><%= rule.description || "Rule" %></span>
+              <div class="text-muted">
+                <% if rule.min_days && rule.max_days %>
+                  <%= rule.min_days %>–<%= rule.max_days %> days
+                <% elsif rule.min_days %>
+                  <%= rule.min_days %>+ days
+                <% elsif rule.max_days %>
+                  <%= t("admin.resources.show.up_to_days", count: rule.max_days) %>
+                <% end %>
+                — x<%= rule.multiplier %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Sidebar actions %>
+  <div class="space-y-4">
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("admin.resources.show.actions_title") %></h3>
+      <% end %>
+
+      <div class="space-y-3">
+        <% if @resource.active? %>
+          <%= form_with url: toggle_status_admin_resource_path(@resource), method: :patch, class: "space-y-3" do |f| %>
+            <div>
+              <label class="block text-xs text-muted mb-1"><%= t("admin.resources.show.reason_label") %></label>
+              <input type="text" name="reason" class="form-input" placeholder="<%= t("admin.resources.show.reason_placeholder") %>">
+            </div>
+            <div>
+              <label class="block text-xs text-muted mb-1"><%= t("admin.resources.show.expected_return_label") %></label>
+              <input type="date" name="unavailable_until" class="form-input">
+            </div>
+            <%= render(ButtonComponent.new(variant: :danger, size: :sm, full_width: true, type: "submit")) { t("admin.resources.show.mark_unavailable_button") } %>
+          <% end %>
+        <% elsif @resource.unavailable? %>
+          <%= button_to t("admin.resources.show.reactivate_button"), toggle_status_admin_resource_path(@resource), method: :patch, class: "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors cursor-pointer bg-success text-white hover:bg-success/90 px-4 py-2 text-sm w-full" %>
+        <% end %>
+
+        <% if @resource.electric? %>
+          <div class="pt-3 border-t border-card-border">
+            <% if @resource.recharging? %>
+              <div class="text-xs text-amber-600 mb-2"><%= t("admin.resources.show.recharging_until", time: @resource.recharge_until.strftime('%H:%M on %-d %b')) %></div>
+              <%= button_to t("admin.resources.show.clear_recharge_button"), recharge_admin_resource_path(@resource, clear: true), method: :patch, class: "text-xs text-sage hover:text-sage/80 font-medium" %>
+            <% else %>
+              <%= form_with url: recharge_admin_resource_path(@resource), method: :patch, class: "space-y-2" do %>
+                <label class="block text-xs text-muted"><%= t("admin.resources.show.set_recharge_label") %></label>
+                <input type="datetime-local" name="recharge_until" class="form-input" required>
+                <%= render(ButtonComponent.new(variant: :secondary, size: :sm, full_width: true, type: "submit")) { t("admin.resources.show.start_recharge_button") } %>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+
+        <div class="pt-3 border-t border-card-border space-y-2">
+          <%= render(ButtonComponent.new(href: label_admin_resource_path(@resource), variant: :secondary, size: :sm, full_width: true, target: "_blank")) { t("admin.resources.show.print_label_button") } %>
+          <%= link_to t("admin.resources.show.regenerate_qr_button"),
+                regenerate_qr_confirm_admin_resource_path(@resource),
+                class: "block w-full text-xs text-muted hover:text-primary text-center py-1" %>
+        </div>
+
+        <% unless @resource.bookings.exists? %>
+          <div class="pt-3 border-t border-card-border">
+            <%= button_to t("admin.resources.show.delete_button"), admin_resource_path(@resource), method: :delete, class: "text-xs text-danger hover:text-danger/80", data: { turbo_confirm: t("admin.resources.show.delete_confirm") } %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

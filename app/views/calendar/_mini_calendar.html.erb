@@ -1,0 +1,52 @@
+<%# Two-month mini calendar — click a week to navigate %>
+<% month1_start = @week_start.beginning_of_month %>
+<% month2_start = month1_start + 1.month %>
+
+<div class="mt-6 grid grid-cols-2 gap-6">
+  <% [month1_start, month2_start].each do |month_start| %>
+    <div class="bg-white rounded-lg border border-card-border shadow-sm p-4">
+      <div class="text-center text-sm font-medium mb-3"><%= month_start.strftime("%B %Y") %></div>
+
+      <%
+        first_day = month_start.beginning_of_week(:monday)
+        last_day = month_start.end_of_month.end_of_week(:monday)
+        weeks = (first_day..last_day).to_a.each_slice(7).to_a
+      %>
+      <div class="text-xs">
+        <div class="flex items-center text-center">
+          <div class="w-6 shrink-0 border-r border-card-border"></div>
+          <div class="flex-1 grid grid-cols-7">
+            <% %w[M T W T F S S].each do |d| %>
+              <div class="py-1 font-medium text-muted"><%= d %></div>
+            <% end %>
+          </div>
+        </div>
+        <% weeks.each do |week| %>
+          <%
+            week_monday = week.first
+            is_selected = week_monday == @week_start
+            has_current_month = week.any? { |d| d.month == month_start.month }
+            week_url = calendar_path(date: week_monday, resource_type_id: @resource_type_id, filter: params[:filter])
+          %>
+          <% next unless has_current_month %>
+          <div class="flex items-center text-center">
+            <%= link_to week_monday.cweek, week_url,
+                class: "w-6 shrink-0 py-1.5 block text-[10px] text-[#AAAAAA] hover:text-muted transition-colors border-r border-card-border",
+                data: { turbo_frame: "calendar" } %>
+            <div class="flex-1 grid grid-cols-7">
+              <% week.each do |day| %>
+                <%
+                  in_month = day.month == month_start.month
+                  is_today = day == Date.current
+                %>
+                <%= link_to day.day, week_url,
+                    class: "py-1.5 block transition-colors rounded-sm #{is_selected ? 'bg-[#E8E6E0] font-medium' : 'hover:bg-hover/50'} #{is_today ? 'font-bold text-sage' : ''} #{in_month ? '' : 'text-[#CCCCC8]'}",
+                    data: { turbo_frame: "calendar" } %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

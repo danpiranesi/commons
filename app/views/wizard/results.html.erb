@@ -1,0 +1,95 @@
+<%= render(PageHeaderComponent.new(
+  title: t("wizard.results.title", type: @resource_type.name.pluralize),
+  breadcrumbs: [["Calendar", root_path], ["Search", root_path], ["Results", nil]]
+)) %>
+
+<%# Date/time summary %>
+<div class="bg-[#F7F5F0] rounded-lg px-4 py-3 text-sm mb-6">
+  <div class="flex justify-between">
+    <div>
+      <p class="text-xs text-muted mb-0.5"><%= t("wizard.results.checkout_label") %></p>
+      <p class="font-medium"><%= @start_at.strftime("%-d %b, %H:%M") %></p>
+    </div>
+    <div class="text-muted self-center">→</div>
+    <div class="text-right">
+      <p class="text-xs text-muted mb-0.5"><%= t("wizard.results.return_label") %></p>
+      <p class="font-medium"><%= @end_at.strftime("%-d %b, %H:%M") %></p>
+    </div>
+  </div>
+</div>
+
+<% if @available_resources.any? %>
+  <div class="space-y-3 mb-6">
+    <% @available_resources.each do |resource| %>
+      <%
+        handoff_path = new_booking_path(
+          resource_id: resource.id,
+          start_at:    @start_at.iso8601,
+          end_at:      @end_at.iso8601
+        )
+      %>
+      <%= link_to handoff_path, class: "block", data: { turbo_frame: "_top" } do %>
+        <%= render(CardComponent.new) do %>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="text-xl text-muted shrink-0">
+                <%= resource_icon(resource.resource_type.icon) %>
+              </div>
+              <div class="min-w-0">
+                <p class="font-medium text-primary text-sm truncate">
+                  <%= resource.name %>
+                  <% if resource.electric? %>
+                    <span class="text-[10px] text-sage">⚡</span>
+                  <% end %>
+                </p>
+                <% if resource.regular_driver.present? %>
+                  <p class="text-xs text-muted truncate"><%= resource.regular_driver %></p>
+                <% end %>
+                <% if resource.location.present? %>
+                  <p class="text-xs text-muted">📍 <%= resource.location %></p>
+                <% end %>
+              </div>
+            </div>
+            <div class="text-right shrink-0 ml-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round" class="text-muted">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <%= render(EmptyStateComponent.new(
+    title: t("wizard.results.empty_title", type: @resource_type.name.pluralize.downcase),
+    description: t("wizard.results.empty_description")
+  )) do %>
+    <%= render(ButtonComponent.new(href: root_path, variant: :secondary)) { t("wizard.results.back_to_search") } %>
+  <% end %>
+<% end %>
+
+<% if @unavailable_resources.any? %>
+  <div class="mt-4">
+    <p class="text-xs text-muted font-medium uppercase tracking-wider mb-2 px-1"><%= t("wizard.results.unavailable_section") %></p>
+    <div class="space-y-2 opacity-50">
+      <% @unavailable_resources.each do |resource| %>
+        <%= render(CardComponent.new) do %>
+          <div class="flex items-center gap-3">
+            <div class="text-xl text-muted"><%= resource_icon(resource.resource_type.icon) %></div>
+            <div>
+              <p class="text-sm font-medium text-primary"><%= resource.name %></p>
+              <p class="text-xs text-danger"><%= resource.unavailable_reason.presence || t("wizard.results.unavailable") %></p>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<div class="py-4 text-center">
+  <%= link_to t("wizard.results.change_dates_link"), root_path, class: "text-sm text-muted hover:text-primary" %>
+</div>

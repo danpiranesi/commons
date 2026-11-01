@@ -1,0 +1,225 @@
+<%= render(PageHeaderComponent.new(title: t("bookings.new.title"), subtitle: @resource.name, breadcrumbs: [["Calendar", root_path(date: @date)], [@resource.name, resource_path(@resource)], [t("bookings.new.title"), nil]])) %>
+
+<% unless @bookable %>
+  <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20 mb-6">
+    <%= t("bookings.new.outside_horizon", date: SiteSetting.instance.booking_horizon_date&.strftime("%-d/%-m %Y")) %>
+  </div>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+     data-controller="booking-form"
+     data-booking-form-resource-id-value="<%= @resource.id %>"
+     data-booking-form-preview-url-value="<%= price_preview_booking_path(@resource) %>"
+     data-booking-form-conflicts-value="<%= @resource_conflicts.to_json %>">
+  <%# Booking form %>
+  <div class="lg:col-span-2">
+    <%= form_with model: @booking, url: bookings_path, class: "space-y-6" do |f| %>
+
+      <% if @booking.errors.any? %>
+        <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20"
+             role="alert" tabindex="-1" autofocus>
+          <p class="font-medium mb-1"><%= t("bookings.form.errors_heading", count: @booking.errors.size) %></p>
+          <ul class="list-disc list-inside text-xs">
+            <% @booking.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= f.hidden_field :resource_id, value: @resource.id %>
+
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <div class="flex items-center gap-3">
+            <span class="text-muted"><%= resource_icon(@resource.resource_type.icon) %></span>
+            <div>
+              <h3 class="text-sm font-medium"><%= @resource.name %></h3>
+              <p class="text-xs text-muted"><%= @resource.resource_type.name %></p>
+            </div>
+          </div>
+        <% end %>
+
+        <%# Existing bookings on this day %>
+        <%= render "bookings/existing_bookings", existing_bookings: @existing_bookings %>
+
+        <%# Date/time pickers — 30 min intervals. Start and Return are labelled
+            explicitly and colour-coded so it's obvious both must be set. %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-card-border p-3">
+            <%= render(FormFieldComponent.new(label: t("bookings.form.start_label"), hint: t("bookings.form.start_hint"), required: true)) do %>
+              <%= render "bookings/time_picker", prefix: "booking_start", value: @booking.start_at,
+                    max: (admin? ? nil : SiteSetting.instance.booking_horizon_date) %>
+            <% end %>
+          </div>
+
+          <div class="rounded-lg border-2 border-sage/40 bg-sage/5 p-3">
+            <%= render(FormFieldComponent.new(label: t("bookings.form.end_label"), hint: t("bookings.form.end_hint"), required: true)) do %>
+              <%= render "bookings/time_picker", prefix: "booking_end", value: @booking.end_at %>
+            <% end %>
+          </div>
+        </div>
+
+        <%# Live "how long you'll have it" readout (no quick-duration buttons).
+            aria-live so the recalculated duration is announced, politely. %>
+        <div class="-mt-1 mb-4">
+          <p class="text-sm text-sage-text font-medium"
+             aria-live="polite"
+             data-booking-form-target="duration"
+             data-label-text="<%= t('bookings.form.duration_label') %>"
+             data-hours-unit="<%= t('bookings.form.hours_unit') %>"
+             data-days-unit="<%= t('bookings.form.days_unit') %>"
+             data-invalid-text="<%= t('bookings.form.duration_invalid') %>"></p>
+        </div>
+
+        <%# Live conflict warning — shown when the chosen time overlaps an existing
+            reservation. The submit button is disabled while it's visible. %>
+        <div class="hidden mb-4 bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20"
+             role="alert" aria-live="assertive"
+             data-booking-form-target="conflict">
+          <%= t("bookings.form.conflict_warning") %>
+        </div>
+
+        <%# Recurring booking %>
+        <div class="mb-4" data-controller="recurring">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="recurring" value="1"
+                   class="mt-0.5 rounded border-card-border text-sage focus:ring-sage/30"
+                   data-recurring-target="toggle"
+                   data-action="change->recurring#toggle change->booking-form#updatePreview">
+            <div>
+              <span class="text-sm font-medium"><%= t("bookings.form.recurring_label") %></span>
+              <p class="text-xs text-muted mt-0.5"><%= t("bookings.form.recurring_hint") %></p>
+            </div>
+          </label>
+
+          <%# Weekdays, not dates: the repeat runs from the chosen start date over
+              the selected number of weeks, so the coming work week is bookable. %>
+          <div data-recurring-target="options" class="hidden mt-3 ml-8 space-y-3">
+            <div>
+              <p class="text-xs text-muted mb-2"><%= t("bookings.form.recurring_days_label") %></p>
+              <div class="flex flex-wrap gap-2">
+                <% start_cwday = @date.cwday %>
+                <% t("date.abbr_day_names_monday_first", default: %w[Mon Tue Wed Thu Fri Sat Sun]).each_with_index do |day, i| %>
+                  <label class="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 rounded-md border border-card-border hover:bg-hover/50 transition-colors text-xs">
+                    <input type="checkbox" name="recurring_days[]" value="<%= i + 1 %>"
+                           class="rounded border-card-border text-sage focus:ring-sage/30"
+                           data-action="change->booking-form#updatePreview"
+                           <%= 'checked' if (1..5).include?(i + 1) || (i + 1) == start_cwday %>>
+                    <%= day %>
+                  </label>
+                <% end %>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-muted mb-1" for="recurring_weeks"><%= t("bookings.form.recurring_weeks_label") %></label>
+              <select name="recurring_weeks" id="recurring_weeks" class="form-select w-auto"
+                      data-action="change->booking-form#updatePreview">
+                <% (1..4).each do |w| %>
+                  <option value="<%= w %>"><%= t("bookings.form.recurring_weeks_option", count: w) %></option>
+                <% end %>
+              </select>
+              <p class="text-xs text-muted mt-1"><%= t("bookings.form.recurring_weeks_hint") %></p>
+            </div>
+          </div>
+        </div>
+
+        <%= render "bookings/billing_group_field", f: f %>
+
+        <% if @resource.tracks_mileage? %>
+          <%# Destination — vehicles only %>
+          <%= render "bookings/destination_field", f: f %>
+
+          <%# Ride sharing — vehicles only %>
+          <div class="mb-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <%= f.check_box :rideshare_available, class: "mt-0.5 rounded border-card-border text-sage focus:ring-sage/30", checked: true %>
+              <div>
+                <span class="text-sm font-medium"><%= t("bookings.form.rideshare_label") %></span>
+                <p class="text-xs text-muted mt-0.5"><%= t("bookings.form.rideshare_hint") %></p>
+              </div>
+            </label>
+          </div>
+
+        <% end %>
+
+        <%# May return early %>
+        <div class="mb-4">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <%= f.check_box :may_return_early, class: "mt-0.5 rounded border-card-border text-sage focus:ring-sage/30" %>
+            <div>
+              <span class="text-sm font-medium"><%= t("bookings.form.may_return_early_label") %></span>
+              <p class="text-xs text-muted mt-0.5"><%= t("bookings.form.may_return_early_hint") %></p>
+            </div>
+          </label>
+        </div>
+
+        <%# Accessories & Tolls %>
+        <%= render "bookings/accessories_selector", available_accessories: @available_accessories, selected_ids: [], selected_quantities: {} %>
+
+
+        <%# Notes — always shown, full width %>
+        <%= render(FormFieldComponent.new(label: t("bookings.form.notes_label"), hint: t("bookings.form.optional_hint"))) do %>
+          <%= f.text_area :notes, class: "form-textarea", rows: 2, placeholder: t("bookings.form.notes_placeholder") %>
+        <% end %>
+      <% end %>
+
+      <%# Admin-only: book on behalf of another member. Sits at the bottom, out of
+          the normal flow, with blue accents to signal it's an admin feature. %>
+      <% if admin? %>
+        <%= render "bookings/admin_user_picker", user: @target_user || current_user,
+                   title: t("bookings.form.booking_for_title"), hint: t("bookings.form.booking_for_hint") %>
+      <% end %>
+
+      <%# Submit %>
+      <div class="flex items-center justify-between">
+        <%= render(ButtonComponent.new(href: root_path(date: @date), variant: :ghost)) { t("bookings.form.cancel_button") } %>
+        <%= render(ButtonComponent.new(type: "submit", disabled: !@bookable, data: { booking_form_target: "submit" })) { t("bookings.new.submit_button") } %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Price preview sidebar %>
+  <div>
+    <%# Previous / next trip — charge context + who had the car (vehicles only). %>
+    <% if @resource.tracks_mileage? %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("neighbour.card_title") %></h3>
+        <% end %>
+        <%= render "shared/neighbour_trips", resource: @resource, reference: (@booking.start_at || Time.current) %>
+      <% end %>
+      <div class="h-4"></div>
+    <% end %>
+
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("bookings.form.estimated_cost") %></h3>
+      <% end %>
+
+      <div data-booking-form-target="pricePreview">
+        <% hours = @booking.hours rescue 10 %>
+        <% time_cost = @price ? @price.calculate_time_cost(hours) : 0 %>
+        <%= render "bookings/price_preview", hours: hours, price: @price || ResourcePrice.new(hour_rate: 0, day_rate: 0, min_charge: 0, day_cap_hours: 16), time_cost: time_cost, km_rate: @price&.km_rate || 0, tracks_mileage: @resource.tracks_mileage?, subtotal: time_cost, total: time_cost, accessory_costs: [] %>
+      </div>
+    <% end %>
+
+    <%# Rate info %>
+    <div class="mt-4 text-xs text-muted space-y-1 px-1">
+      <p><%= t("bookings.form.rates_for") %><strong><%= @booking_user.user_type %></strong>:</p>
+      <% if @price %>
+        <p><%= number_to_currency(@price.hour_rate, unit: "", precision: 0) %> <%= t("bookings.form.rate_per_hour") %></p>
+        <% if @price.day_rate > 0 %>
+          <p><%= number_to_currency(@price.day_rate, unit: "", precision: 0) %> <%= t("bookings.form.rate_day_cap", hours: @price.day_cap_hours) %></p>
+        <% end %>
+        <% if @resource.tracks_mileage? && @price.km_rate > 0 %>
+          <p><%= @price.km_rate %> <%= t("bookings.form.rate_per_km") %></p>
+        <% end %>
+        <% if @price.min_charge > 0 %>
+          <p><%= t("bookings.form.min_charge", amount: number_to_currency(@price.min_charge, unit: "", precision: 0)) %></p>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

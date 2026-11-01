@@ -1,0 +1,18 @@
+<% if existing_bookings.any? %>
+  <div class="mb-4 bg-[#FAFAF8] rounded-md border border-card-border px-4 py-3">
+    <p class="text-xs font-medium text-muted uppercase tracking-wider mb-2"><%= t("bookings.existing_bookings.title") %></p>
+    <div class="space-y-1.5">
+      <% existing_bookings.each do |b| %>
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-sage/40 shrink-0"></div>
+            <span class="font-medium"><%= b.start_at.strftime('%H:%M') %> – <%= b.end_at.strftime('%H:%M') %></span>
+            <span class="text-muted"><%= b.user.name %></span>
+          </div>
+          <span class="text-muted text-[10px]"><%= t("bookings.existing_bookings.unavailable") %></span>
+        </div>
+      <% end %>
+    </div>
+    <p class="text-[10px] text-muted mt-2"><%= t("bookings.existing_bookings.hint") %></p>
+  </div>
+<% end %>

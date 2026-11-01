@@ -1,0 +1,63 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2C2C27;
+  --color-bg: #F7F5F0;
+  /* Decorative sage, for fills, borders and large shapes. Too light for body
+     text — use --color-sage-text (5.34:1 on white) when the sage is a word. */
+  --color-sage: #7A8C6E;
+  --color-sage-text: #5F7054;
+  --color-header: #66765C;
+  --color-header-dark: #5A6B50;
+  --color-header-text: #F7F5F0;
+  --color-admin: #4F6488;
+  --color-admin-dark: #3E5170;
+  --color-hover: #EEECEA;
+  --color-danger: #A0442A;
+  --color-success: #5C7A4E;
+  --color-card-border: #E8E6E0;
+  /* Secondary text. Darkened from #888880 (3.28:1) to clear WCAG AA 4.5:1
+     against both the page background and white cards. */
+  --color-muted: #6B6B63;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Admin territory: re-point the green accent tokens to a compatible blue for any
+   subtree carrying .admin-theme (the admin layout body). Everything using
+   bg-header / bg-sage / text-sage / ring-sage inherits the blue automatically. */
+.admin-theme {
+  --color-header: #56698F;
+  --color-header-dark: #45577A;
+  --color-sage: #6C86A6;
+}
+
+@utility form-input {
+  @apply w-full rounded-md border border-card-border bg-white px-3 py-2 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-sage/30 focus:border-sage transition-colors;
+}
+
+@utility form-select {
+  @apply form-input appearance-none pr-8;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23888880%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E");
+  background-size: 16px;
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+}
+
+@utility form-textarea {
+  @apply form-input resize-y min-h-[80px];
+}
+
+/* Attention flash — a sage ring that pulses twice, used to draw the eye to a
+   step (e.g. the mobile time-slot picker) the moment it appears. */
+@keyframes flash-attention {
+  0%   { box-shadow: 0 0 0 0 rgba(122, 140, 110, 0); }
+  20%  { box-shadow: 0 0 0 4px rgba(122, 140, 110, 0.5); }
+  40%  { box-shadow: 0 0 0 0 rgba(122, 140, 110, 0); }
+  60%  { box-shadow: 0 0 0 4px rgba(122, 140, 110, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(122, 140, 110, 0); }
+}
+
+@utility flash-attention {
+  animation: flash-attention 1s ease-in-out;
+}

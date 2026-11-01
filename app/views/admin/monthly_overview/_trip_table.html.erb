@@ -1,0 +1,64 @@
+<%# The trips in one expandable row of the monthly overview — a member's own
+    trips, or (show_driver) the trips a work group pays for, with who drove. %>
+<% show_driver = local_assigns[:show_driver] %>
+      <div class="overflow-x-auto border-t border-card-border">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="border-b border-card-border text-left text-xs text-muted uppercase tracking-wider">
+            <% if show_driver %><th class="px-4 py-2.5 font-medium"><%= t("admin.monthly_overview.show.col_driver") %></th><% end %>
+            <th class="px-4 py-2.5 font-medium"><%= t("admin.monthly_overview.show.col_resource") %></th>
+            <th class="px-4 py-2.5 font-medium"><%= t("admin.monthly_overview.show.col_dates") %></th>
+            <th class="px-4 py-2.5 font-medium text-right"><%= t("admin.monthly_overview.show.col_driven") %></th>
+            <th class="px-4 py-2.5 font-medium text-right"><%= t("admin.monthly_overview.show.col_amount") %></th>
+            <th class="px-4 py-2.5 font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% bookings.each do |booking| %>
+            <tr class="border-b border-card-border last:border-0 hover:bg-hover/30">
+              <% if show_driver %><td class="px-4 py-2.5 font-medium"><%= booking.user.name %></td><% end %>
+              <td class="px-4 py-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-muted"><%= resource_icon(booking.resource.resource_type.icon) %></span>
+                  <span class="font-medium"><%= booking.resource.display_name %></span>
+                </div>
+                <% if booking.payer_label && !show_driver %>
+                  <div class="text-xs text-sage-text mt-0.5">&#128176; <%= t("admin.monthly_overview.show.on_behalf_of", group: booking.payer_label) %></div>
+                <% end %>
+              </td>
+              <td class="px-4 py-2.5 text-xs">
+                <div><%= booking.start_at.strftime("%-d %b %H:%M") %></div>
+                <div class="text-muted"><%= booking.completed_at&.strftime("%-d %b %H:%M") || "—" %></div>
+              </td>
+              <td class="px-4 py-2.5 text-right font-mono text-xs">
+                <% if booking.km_driven %>
+                  <%= number_with_delimiter(booking.km_driven) %> km
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="px-4 py-2.5 text-right font-mono font-medium">
+                <% if booking.total_amount %>
+                  <%= number_with_delimiter(booking.total_amount, delimiter: ".", separator: ",") %> kr
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                <% unless @closed %>
+                  <div class="inline-flex items-center gap-3">
+                    <%= link_to t("admin.monthly_overview.show.correct_link"),
+                          edit_admin_booking_path(booking),
+                          class: "text-xs text-sage hover:text-sage/80 font-medium" %>
+                    <%= button_to t("admin.monthly_overview.show.delete_link"), admin_booking_path(booking),
+                          method: :delete,
+                          form: { class: "inline", data: { turbo_confirm: t("admin.monthly_overview.show.delete_confirm") } },
+                          class: "text-xs text-danger hover:text-danger/80 font-medium cursor-pointer" %>
+                  </div>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      </div>

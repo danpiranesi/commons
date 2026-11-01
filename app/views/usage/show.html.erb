@@ -1,0 +1,91 @@
+<%= render(PageHeaderComponent.new(title: t("usage.show.title"), subtitle: t("usage.show.subtitle"))) do |header| %>
+  <% if @months.any? %>
+    <% header.with_actions do %>
+      <%= link_to usage_path(format: :csv),
+            class: "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium bg-[#E8E6E0] text-primary hover:bg-[#DDDBD5] transition-colors no-underline" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <%= t("usage.show.export_csv") %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @months.empty? %>
+  <%= render(EmptyStateComponent.new(
+    title: t("usage.show.empty_title"),
+    description: t("usage.show.empty_description")
+  )) %>
+<% else %>
+  <div class="space-y-8">
+    <% @months.each do |month| %>
+      <%# Trips made for a work group are the group's, not the member's: kept out
+          of their list and totals, and shown apart so they can still find them. %>
+      <% all_bookings = @bookings_by_month[month] %>
+      <% bookings = all_bookings.reject(&:on_behalf_of_group?) %>
+      <% group_bookings = all_bookings.select(&:on_behalf_of_group?) %>
+      <% total = month_total(bookings) %>
+      <section>
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="text-lg font-medium"><%= ClosedBillingMonth.label_for(month) %></h2>
+          <span class="text-sm text-muted"><%= t("usage.show.month_summary", count: total[:count], amount: number_with_delimiter(total[:cost].round)) %></span>
+        </div>
+
+        <% if bookings.any? %>
+        <div class="rounded-lg border border-card-border bg-white shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-[#F3F1EC] text-left text-xs text-muted uppercase tracking-wider">
+                <th class="px-4 py-2.5 font-medium"><%= t("usage.show.col_date") %></th>
+                <th class="px-4 py-2.5 font-medium"><%= t("usage.show.col_resource") %></th>
+                <th class="px-4 py-2.5 font-medium text-right"><%= t("usage.show.col_hours") %></th>
+                <th class="px-4 py-2.5 font-medium text-right"><%= t("usage.show.col_km") %></th>
+                <th class="px-4 py-2.5 font-medium text-right"><%= t("usage.show.col_cost") %></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-card-border">
+              <% bookings.each do |booking| %>
+                <tr class="hover:bg-hover/40 transition-colors">
+                  <td class="px-4 py-3 whitespace-nowrap">
+                    <%= link_to l((booking.completed_at || booking.start_at).to_date, format: :long),
+                          booking_path(booking), class: "text-primary hover:text-sage transition-colors", data: { turbo_frame: "_top" } %>
+                  </td>
+                  <td class="px-4 py-3"><%= booking.resource.display_name %></td>
+                  <td class="px-4 py-3 text-right tabular-nums"><%= booking.billed_hours %></td>
+                  <td class="px-4 py-3 text-right tabular-nums"><%= booking.km_driven || "—" %></td>
+                  <td class="px-4 py-3 text-right tabular-nums font-medium"><%= number_with_delimiter((booking.total_amount || 0).round) %> kr</td>
+                </tr>
+              <% end %>
+            </tbody>
+            <tfoot>
+              <tr class="border-t-2 border-card-border font-semibold">
+                <td class="px-4 py-3" colspan="2"><%= t("usage.show.total_row") %></td>
+                <td class="px-4 py-3 text-right tabular-nums"><%= total[:hours].round(1) %></td>
+                <td class="px-4 py-3 text-right tabular-nums"><%= number_with_delimiter(total[:km]) %></td>
+                <td class="px-4 py-3 text-right tabular-nums"><%= number_with_delimiter(total[:cost].round) %> kr</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <% end %>
+
+        <% if group_bookings.any? %>
+          <div class="mt-3 rounded-lg border border-dashed border-card-border bg-[#FAF9F6] px-4 py-3">
+            <p class="text-xs font-medium text-muted mb-2"><%= t("usage.show.group_trips_title") %></p>
+            <ul class="space-y-1.5 text-sm">
+              <% group_bookings.each do |booking| %>
+                <li class="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <span>
+                    <%= link_to l((booking.completed_at || booking.start_at).to_date, format: :long), booking_path(booking),
+                          class: "text-primary hover:text-sage transition-colors", data: { turbo_frame: "_top" } %>
+                    · <%= booking.resource.display_name %>
+                  </span>
+                  <span class="text-xs text-muted">&#128176; <%= t("usage.show.paid_by_group", group: booking.payer_label) %></span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </section>
+    <% end %>
+  </div>
+<% end %>

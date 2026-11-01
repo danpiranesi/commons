@@ -1,0 +1,47 @@
+<%= render(PageHeaderComponent.new(
+      title: t("admin.billing_groups.title"),
+      subtitle: t("admin.billing_groups.subtitle"))) do |header| %>
+  <% header.with_actions do %>
+    <%= render(ButtonComponent.new(href: new_admin_billing_group_path, size: :md)) { t("admin.billing_groups.new_button") } %>
+  <% end %>
+<% end %>
+
+<% if @groups.any? %>
+  <div class="bg-white rounded-lg border border-card-border shadow-sm overflow-hidden max-w-3xl">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-card-border text-left text-xs text-muted uppercase tracking-wider">
+          <th class="px-4 py-3 font-medium"><%= t("admin.billing_groups.col_name") %></th>
+          <th class="px-4 py-3 font-medium"><%= t("admin.billing_groups.col_category") %></th>
+          <th class="px-4 py-3 font-medium"><%= t("admin.billing_groups.col_rate") %></th>
+          <th class="px-4 py-3 font-medium w-20"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @groups.each do |group| %>
+          <tr class="border-b border-card-border last:border-0 hover:bg-hover/50 <%= 'opacity-50' unless group.active? %>">
+            <td class="px-4 py-3">
+              <div class="font-medium"><%= group.name %></div>
+              <% if group.code.present? %>
+                <div class="text-xs text-muted font-mono"><%= group.code %></div>
+              <% end %>
+            </td>
+            <td class="px-4 py-3"><%= group.billing_category.name_da %></td>
+            <td class="px-4 py-3 font-mono text-xs">
+              <% c = group.billing_category %>
+              <%= c.per_km? ? "#{c.rate_value.to_f} #{t('admin.billing_categories.unit_km')}" : "×#{c.rate_value.to_f}" %>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <%= link_to t("admin.billing_groups.edit_link"), edit_admin_billing_group_path(group),
+                    class: "text-sage hover:text-sage/80 text-xs font-medium" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <%= render(EmptyStateComponent.new(
+        title: t("admin.billing_groups.empty_title"),
+        description: t("admin.billing_groups.empty_description"))) %>
+<% end %>

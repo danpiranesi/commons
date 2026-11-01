@@ -1,0 +1,132 @@
+<%# Startsidehoved — admin-editable info banner shown at the top of the homepage. %>
+<% homepage_header = SiteSetting.instance.homepage_header %>
+<% if homepage_header.present? %>
+  <div class="bg-header text-header-text rounded-lg px-5 py-3 mb-6 text-center text-sm font-medium">
+    <%= simple_format(homepage_header, {}, wrapper_tag: "span") %>
+  </div>
+<% end %>
+
+<%# Active-booking panel + upcoming reservations — outside the frame so they
+    persist across week nav %>
+<%= render "calendar/active_booking_panel" %>
+<%= render "calendar/upcoming_bookings" %>
+
+<%= turbo_frame_tag "calendar" do %>
+  <%# Header: week nav + filters %>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <%# Week nav — arrows flank the week number; the number itself jumps to the
+          current week. %>
+      <%# Icon-only controls carry aria-label (the icon itself is hidden from
+          screen readers) and are 44px so they are a comfortable touch target. %>
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <nav class="flex items-center gap-2 sm:gap-3" aria-label="<%= t("calendar.show.week_nav_label") %>">
+        <%= link_to calendar_path(date: @week_start - 7.days, resource_type_id: @resource_type_id, filter: params[:filter], view: @mobile_view_param),
+            class: "inline-flex items-center justify-center w-11 h-11 rounded-md border border-card-border bg-white text-primary hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2",
+            data: { turbo_frame: "calendar" },
+            title: t("calendar.show.previous_week"), "aria-label": t("calendar.show.previous_week") do %>
+          <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <% end %>
+        <h1 class="m-0">
+          <%= link_to t("calendar.show.week_label", week: @week_start.cweek),
+              calendar_path(resource_type_id: @resource_type_id, filter: params[:filter], view: @mobile_view_param),
+              class: "whitespace-nowrap text-2xl font-medium text-primary hover:text-sage-text transition-colors no-underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2",
+              data: { turbo_frame: "calendar" },
+              title: t("calendar.show.current_week"), "aria-label": t("calendar.show.current_week") %>
+        </h1>
+        <%= link_to calendar_path(date: @week_start + 7.days, resource_type_id: @resource_type_id, filter: params[:filter], view: @mobile_view_param),
+            class: "inline-flex items-center justify-center w-11 h-11 rounded-md border border-card-border bg-white text-primary hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2",
+            data: { turbo_frame: "calendar" },
+            title: t("calendar.show.next_week"), "aria-label": t("calendar.show.next_week") do %>
+          <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <% end %>
+      </nav>
+
+      <%# Mobile only: the booking wizard (default) or the weekly calendar grid. %>
+      <div class="md:hidden flex items-center gap-0.5 bg-white border border-card-border rounded-md p-0.5 shrink-0"
+           role="group" aria-label="<%= t("calendar.show.mobile_view_label") %>">
+        <% [["book", t("calendar.show.mobile_view_book")], ["week", t("calendar.show.mobile_view_week")]].each do |key, label| %>
+          <% current = (@mobile_view == key) %>
+          <%= link_to label,
+                calendar_path(date: @week_start, resource_type_id: @resource_type_id, filter: params[:filter], view: (key == "week" ? "week" : nil)),
+                class: "px-2 py-2 text-xs font-medium rounded transition-colors #{current ? 'bg-[#E8E6E0] text-primary' : 'text-muted hover:bg-hover'}",
+                "aria-current": (current ? "true" : nil),
+                data: { turbo_frame: "calendar", turbo_action: "advance" } %>
+        <% end %>
+      </div>
+      </div>
+      <%# Date range — desktop only %>
+      <p class="text-sm text-muted mt-1.5 hidden sm:block"><%= week_label(@week_start) %></p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <%# Resource type filter — Cars, Bicycles, Other %>
+      <% car_type = @resource_types.find { |rt| rt.name == "Car" } %>
+      <% bike_type = @resource_types.find { |rt| rt.name == "Bicycle" } %>
+      <% other_type_ids = @resource_types.reject { |rt| rt.name.in?(%w[Car Bicycle]) }.map(&:id) %>
+      <%# Desktop filters — includes All %>
+      <div class="hidden sm:flex items-center gap-1 bg-white border border-card-border rounded-md p-0.5">
+        <%= link_to t("calendar.show.filter_all"),
+          calendar_path(date: @week_start),
+          class: "px-3 py-1.5 text-xs font-medium rounded transition-colors #{@resource_type_id.blank? && params[:filter].blank? ? 'bg-[#E8E6E0] text-primary' : 'text-primary hover:bg-hover'}",
+          data: { turbo_frame: "calendar" } %>
+        <% if car_type %>
+          <%= link_to t("calendar.show.filter_cars"),
+            calendar_path(date: @week_start, resource_type_id: car_type.id),
+            class: "px-3 py-1.5 text-xs font-medium rounded transition-colors #{@resource_type_id.to_s == car_type.id.to_s ? 'bg-[#E8E6E0] text-primary' : 'text-primary hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } %>
+        <% end %>
+        <% if bike_type %>
+          <%= link_to t("calendar.show.filter_bicycles"),
+            calendar_path(date: @week_start, resource_type_id: bike_type.id),
+            class: "px-3 py-1.5 text-xs font-medium rounded transition-colors #{@resource_type_id.to_s == bike_type.id.to_s ? 'bg-[#E8E6E0] text-primary' : 'text-primary hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } %>
+        <% end %>
+        <% if other_type_ids.any? %>
+          <%= link_to t("calendar.show.filter_other"),
+            calendar_path(date: @week_start, filter: "other"),
+            class: "px-3 py-1.5 text-xs font-medium rounded transition-colors #{params[:filter] == 'other' ? 'bg-[#E8E6E0] text-primary' : 'text-primary hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Legend %>
+  <div class="flex items-center gap-4 mb-4 text-[10px] text-muted">
+    <div class="flex items-center gap-1.5">
+      <span>&#128663;</span>
+      <span><%= t("calendar.show.legend_rideshare") %></span>
+    </div>
+    <span class="text-card-border">|</span>
+    <div class="flex items-center gap-1.5">
+      <span>&#10084;&#10084;&#10084;</span>
+      <span><%= t("calendar.show.legend_may_return_early") %></span>
+    </div>
+  </div>
+
+  <%# Desktop calendar (hidden on mobile) %>
+  <div class="hidden md:block">
+    <%# Full-bleed: only the grid breaks out of the layout's max-w container so it
+        spans the full viewport width. %>
+    <div class="w-screen ml-[calc(50%-50vw)]">
+      <%= render "calendar/week_grid" %>
+    </div>
+
+    <%# Two-month mini calendar for week navigation %>
+    <%= render "calendar/mini_calendar" %>
+  </div>
+
+  <%# Mobile (hidden on desktop). Defaults to the booking wizard, which only lists
+      cars once a date and time are set, and then only those free for that slot.
+      The full week grid is opt-in. %>
+  <div class="md:hidden">
+    <% if @mobile_view == "week" %>
+      <div class="-mx-8 overflow-x-auto">
+        <%= render "calendar/week_grid", compact: true %>
+      </div>
+    <% else %>
+      <%= render "calendar/mobile_wizard" %>
+    <% end %>
+  </div>
+<% end %>

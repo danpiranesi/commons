@@ -1,0 +1,22 @@
+<%# EXTEND-reservation form. Shared by the QR page and active-booking panel.
+    Same scoping model as the completion form: qr_token + booking id, re-derived
+    server-side. No billing happens on extend — only on completion. %>
+<%= form_with url: reservation_extension_path, method: :post, data: { turbo: false }, class: "space-y-4" do %>
+  <%= hidden_field_tag :token, resource.qr_token %>
+  <%= hidden_field_tag :booking_id, booking.id %>
+  <% if local_assigns[:return_to].present? %><%= hidden_field_tag :return_to, return_to %><% end %>
+
+  <% ceiling = booking.max_extension_end %>
+  <%= render(FormFieldComponent.new(label: t("reservations.extend.new_end"), required: true,
+        hint: ceiling ? t("reservations.extend.latest_hint", time: ceiling.strftime("%-d/%-m %H:%M")) : nil)) do %>
+    <input type="datetime-local" name="new_end" required
+           value="<%= booking.end_at.strftime("%Y-%m-%dT%H:%M") %>"
+           min="<%= booking.end_at.strftime("%Y-%m-%dT%H:%M") %>"
+           <%= "max=#{ceiling.strftime("%Y-%m-%dT%H:%M")}".html_safe if ceiling %>
+           class="form-input w-full">
+  <% end %>
+
+  <%= render(ButtonComponent.new(variant: :secondary, full_width: true, type: "submit")) do %>
+    <%= t("reservations.extend.submit") %>
+  <% end %>
+<% end %>

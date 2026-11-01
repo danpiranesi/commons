@@ -1,0 +1,27 @@
+<%# END-reservation form. Shared by the QR page, active-booking panel and kiosk.
+    Always posts the resource's qr_token as the scoping credential plus the
+    booking id; the controller re-derives the booking through the resource so a
+    forged id can't target another car. Branches on whether mileage is tracked. %>
+<%= form_with url: reservation_completion_path, method: :post, data: { turbo: false }, class: "space-y-4" do %>
+  <%= hidden_field_tag :token, resource.qr_token %>
+  <%= hidden_field_tag :booking_id, booking.id %>
+  <% if local_assigns[:return_to].present? %><%= hidden_field_tag :return_to, return_to %><% end %>
+  <% if local_assigns[:end_without_check_in] %><%= hidden_field_tag :end_without_check_in, "1" %><% end %>
+
+  <% if resource.tracks_mileage? %>
+    <%= render(FormFieldComponent.new(
+      label: t("reservations.completion.odometer_label"),
+      hint:  t("reservations.completion.odometer_hint", km: number_with_delimiter(resource.current_odometer)),
+      required: true
+    )) do %>
+      <input type="number" name="ending_reading" inputmode="numeric"
+             min="<%= resource.current_odometer %>" step="1" required
+             class="form-input w-full text-center text-4xl font-medium tracking-wide py-4"
+             placeholder="<%= resource.current_odometer %>">
+    <% end %>
+  <% end %>
+
+  <%= render(ButtonComponent.new(variant: :stop, size: :lg, full_width: true, type: "submit")) do %>
+    <%= t("reservations.completion.end_button") %>
+  <% end %>
+<% end %>

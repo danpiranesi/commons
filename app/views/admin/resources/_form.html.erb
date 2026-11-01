@@ -1,0 +1,303 @@
+<% type_names = @resource_types.each_with_object({}) { |rt, h| h[rt.id.to_s] = rt.name } %>
+<%= form_with model: [:admin, @resource], class: "space-y-6",
+    data: { controller: "resource-form", resource_form_type_names_value: type_names.to_json } do |f| %>
+  <% if @resource.errors.any? %>
+    <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20">
+      <p class="font-medium mb-1"><%= t("admin.resources.form.errors_heading") %></p>
+      <ul class="list-disc list-inside text-xs">
+        <% @resource.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%# Basic info — always visible %>
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header do %>
+      <h3 class="text-sm font-medium"><%= t("admin.resources.form.basic_info_title") %></h3>
+    <% end %>
+
+    <%= render(FormFieldComponent.new(label: t("admin.resources.form.name_label"), required: true, hint: t("admin.resources.form.name_hint"), error: @resource.errors[:name].first)) do %>
+      <%= f.text_field :name, class: "form-input", placeholder: t("admin.resources.form.name_placeholder") %>
+    <% end %>
+
+    <%= render(FormFieldComponent.new(label: t("admin.resources.form.type_label"), required: true)) do %>
+      <%= f.select :resource_type_id, @resource_types.map { |rt| [rt.name, rt.id] }, { prompt: t("admin.resources.form.type_prompt") }, class: "form-select", data: { resource_form_target: "typeSelect", action: "change->resource-form#toggle" } %>
+    <% end %>
+
+    <%# Description — all types %>
+    <div data-resource-form-target="conditionalField" data-show-for="all" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.description_label"), hint: t("admin.resources.form.description_hint"))) do %>
+        <%= f.text_area :description, class: "form-textarea w-full", rows: 4 %>
+      <% end %>
+    </div>
+
+    <%# Port, Color, Make, License, Location — Car only %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car" class="hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <%= render(FormFieldComponent.new(label: t("admin.resources.form.port_label"), hint: t("admin.resources.form.port_hint"))) do %>
+          <%= f.text_field :port, class: "form-input", placeholder: t("admin.resources.form.port_placeholder") %>
+        <% end %>
+        <%= render(FormFieldComponent.new(label: t("admin.resources.form.color_label"))) do %>
+          <%= f.text_field :color, class: "form-input", placeholder: t("admin.resources.form.color_placeholder") %>
+        <% end %>
+        <%= render(FormFieldComponent.new(label: t("admin.resources.form.make_label"), hint: t("admin.resources.form.make_hint"))) do %>
+          <%= f.text_field :make, class: "form-input", placeholder: t("admin.resources.form.make_placeholder") %>
+        <% end %>
+        <%= render(FormFieldComponent.new(label: t("admin.resources.form.license_number_label"), hint: t("admin.resources.form.license_number_hint"))) do %>
+          <%= f.text_field :license_number, class: "form-input", placeholder: t("admin.resources.form.license_number_placeholder") %>
+        <% end %>
+        <%= render(FormFieldComponent.new(label: t("admin.resources.form.location_label"), hint: t("admin.resources.form.location_car_hint"))) do %>
+          <%= f.select :location, options_for_select(%w[Garage Parkeringsplads Gården], @resource.location), { include_blank: t("admin.resources.form.location_prompt") }, class: "form-select" %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Location — Bicycle %>
+    <div data-resource-form-target="conditionalField" data-show-for="Bicycle" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.location_label"), hint: t("admin.resources.form.location_bicycle_hint"))) do %>
+        <%= f.select :location, options_for_select(%w[Cykelskur Cykelkælder], @resource.location), { include_blank: t("admin.resources.form.location_prompt") }, class: "form-select" %>
+      <% end %>
+    </div>
+
+    <%# Location — Trailer, Rocket Box %>
+    <div data-resource-form-target="conditionalField" data-show-for="Trailer, Rocket Box" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.location_label"), hint: t("admin.resources.form.location_generic_hint"))) do %>
+        <%= f.text_field :location, class: "form-input", placeholder: t("admin.resources.form.location_placeholder") %>
+      <% end %>
+    </div>
+
+    <%# Fast bruger (regular user) — Car, Bicycle %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car, Bicycle" class="hidden space-y-4">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.regular_user_label"), hint: t("admin.resources.form.regular_user_hint"))) do %>
+        <%= f.select :regular_user_id,
+              User.order(:name).map { |u| [u.name, u.id] },
+              { include_blank: t("admin.resources.form.regular_user_blank") },
+              class: "form-select" %>
+      <% end %>
+
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.regular_driver_label"), hint: t("admin.resources.form.regular_driver_hint"))) do %>
+        <%= f.text_field :regular_driver, class: "form-input", placeholder: t("admin.resources.form.regular_driver_placeholder") %>
+      <% end %>
+    </div>
+
+    <%# Damage Notes — Car, Bicycle %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car, Bicycle" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.damage_notes_label"), hint: t("admin.resources.form.damage_notes_hint"))) do %>
+        <%= f.text_area :damage_notes, class: "form-textarea w-full", rows: 3, placeholder: t("admin.resources.form.damage_notes_placeholder") %>
+      <% end %>
+    </div>
+
+    <%# Inventory Count — Trailer, Rocket Box (not Toll — unlimited) %>
+    <div data-resource-form-target="conditionalField" data-show-for="Trailer, Rocket Box" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.inventory_count_label"), hint: t("admin.resources.form.inventory_count_hint"))) do %>
+        <%= f.number_field :inventory_count, class: "form-input w-24", min: 1, value: @resource.inventory_count || 1 %>
+      <% end %>
+    </div>
+
+    <%# Electric — Car, Bicycle %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car, Bicycle" class="hidden">
+      <div class="mb-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <%= f.check_box :electric, class: "mt-0.5 rounded border-card-border text-sage focus:ring-sage/30" %>
+          <div>
+            <span class="text-sm font-medium"><%= t("admin.resources.form.electric_label") %></span>
+            <p class="text-xs text-muted mt-0.5"><%= t("admin.resources.form.electric_hint") %></p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <%# Mileage — Car %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car" class="hidden">
+      <%= render(FormFieldComponent.new(label: t("admin.resources.form.initial_mileage_label"), hint: t("admin.resources.form.initial_mileage_hint"))) do %>
+        <%= number_field_tag :initial_mileage, @resource.resource_stat&.mileage, class: "form-input", placeholder: t("admin.resources.form.initial_mileage_placeholder") %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# Pricing — all types except when none selected %>
+  <div data-resource-form-target="conditionalField" data-show-for="all" class="hidden">
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("admin.resources.form.pricing_title") %></h3>
+      <% end %>
+
+      <p class="text-xs text-muted mb-4"><%= t("admin.resources.form.pricing_hint") %></p>
+
+      <% ["resident"].each do |ut| %>
+        <div>
+          <% price = @resource.resource_prices.find { |p| p.user_type == ut } || @resource.resource_prices.build(user_type: ut) %>
+
+          <%# Car: hour, day cap, km, min charge %>
+          <div data-resource-form-target="conditionalField" data-show-for="Car" class="hidden">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.per_hour_label") %></label>
+                <input type="number" name="prices[<%= ut %>][hour_rate]" value="<%= price.hour_rate %>" class="form-input" step="0.01" min="0">
+              </div>
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.day_cap_label") %></label>
+                <input type="number" name="prices[<%= ut %>][day_rate]" value="<%= price.day_rate %>" class="form-input" step="0.01" min="0">
+              </div>
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.km_rate_label") %></label>
+                <input type="number" name="prices[<%= ut %>][km_rate]" value="<%= price.km_rate %>" class="form-input" step="0.0001" min="0">
+              </div>
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.min_charge_label") %></label>
+                <input type="number" name="prices[<%= ut %>][min_charge]" value="<%= price.min_charge %>" class="form-input" step="0.01" min="0">
+              </div>
+            </div>
+            <p class="text-[10px] text-muted mt-1"><%= t("admin.resources.form.day_cap_note", hours: price.day_cap_hours) %></p>
+          </div>
+
+          <%# Bicycle, Trailer, Rocket Box: priced per hour, with an optional day
+              cap so a long booking never costs more than a whole day. %>
+          <div data-resource-form-target="conditionalField" data-show-for="Bicycle, Trailer, Rocket Box" class="hidden">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.per_hour_label") %></label>
+                <input type="number" name="prices[<%= ut %>][hour_rate]" value="<%= price.hour_rate %>" class="form-input" step="0.01" min="0">
+              </div>
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.day_cap_label") %></label>
+                <input type="number" name="prices[<%= ut %>][day_rate]" value="<%= price.day_rate %>" class="form-input" step="0.01" min="0">
+              </div>
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.min_charge_label") %></label>
+                <input type="number" name="prices[<%= ut %>][min_charge]" value="<%= price.min_charge %>" class="form-input" step="0.01" min="0">
+              </div>
+            </div>
+            <p class="text-[11px] text-muted mt-1"><%= t("admin.resources.form.day_cap_note", hours: price.day_cap_hours) %></p>
+          </div>
+
+          <%# Toll: flat price per crossing %>
+          <div data-resource-form-target="conditionalField" data-show-for="Toll" class="hidden">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.price_per_crossing_label") %></label>
+                <input type="number" name="prices[<%= ut %>][hour_rate]" value="<%= price.hour_rate %>" class="form-input" step="1" min="0">
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Pricing Rules — Car only %>
+  <div data-resource-form-target="conditionalField" data-show-for="Car" class="hidden">
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-medium"><%= t("admin.resources.form.pricing_rules_title") %></h3>
+          <button type="button" data-action="click->pricing-rules#add" class="text-xs text-sage hover:text-sage/80 font-medium"><%= t("admin.resources.form.add_rule_button") %></button>
+        </div>
+      <% end %>
+
+      <div data-controller="pricing-rules">
+        <div data-pricing-rules-target="container">
+          <% (@resource.pricing_rules.presence || [PricingRule.new]).each_with_index do |rule, i| %>
+            <div class="grid grid-cols-12 gap-3 mb-3 items-end" data-pricing-rules-target="rule">
+              <div class="col-span-3">
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.min_days_label") %></label>
+                <input type="number" name="pricing_rules[][min_days]" value="<%= rule.min_days %>" class="form-input" min="1" placeholder="e.g. 7">
+              </div>
+              <div class="col-span-3">
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.max_days_label") %></label>
+                <input type="number" name="pricing_rules[][max_days]" value="<%= rule.max_days %>" class="form-input" min="1">
+              </div>
+              <div class="col-span-2">
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.multiplier_label") %></label>
+                <input type="number" name="pricing_rules[][multiplier]" value="<%= rule.multiplier %>" class="form-input" step="0.01" min="0.01">
+              </div>
+              <div class="col-span-3">
+                <label class="block text-xs text-muted mb-1"><%= t("admin.resources.form.rule_description_label") %></label>
+                <input type="text" name="pricing_rules[][description]" value="<%= rule.description %>" class="form-input">
+              </div>
+              <div class="col-span-1">
+                <button type="button" data-action="click->pricing-rules#remove" class="text-danger hover:text-danger/80 p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <template data-pricing-rules-target="template">
+          <div class="grid grid-cols-12 gap-3 mb-3 items-end" data-pricing-rules-target="rule">
+            <div class="col-span-3">
+              <label class="block text-xs text-muted mb-1">Min Days</label>
+              <input type="number" name="pricing_rules[][min_days]" class="form-input" min="1">
+            </div>
+            <div class="col-span-3">
+              <label class="block text-xs text-muted mb-1">Max Days</label>
+              <input type="number" name="pricing_rules[][max_days]" class="form-input" min="1">
+            </div>
+            <div class="col-span-2">
+              <label class="block text-xs text-muted mb-1">Multiplier</label>
+              <input type="number" name="pricing_rules[][multiplier]" class="form-input" step="0.01" min="0.01">
+            </div>
+            <div class="col-span-3">
+              <label class="block text-xs text-muted mb-1">Description</label>
+              <input type="text" name="pricing_rules[][description]" class="form-input">
+            </div>
+            <div class="col-span-1">
+              <button type="button" data-action="click->pricing-rules#remove" class="text-danger hover:text-danger/80 p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Compatible Accessories — Car, Bicycle %>
+  <% if @available_accessories&.any? %>
+    <div data-resource-form-target="conditionalField" data-show-for="Car, Bicycle" class="hidden">
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("admin.resources.form.compatible_accessories_title") %></h3>
+        <% end %>
+
+        <p class="text-xs text-muted mb-3"><%= t("admin.resources.form.compatible_accessories_hint") %></p>
+
+        <% selected_ids = @resource.persisted? ? @resource.accessory_ids : [] %>
+        <% @available_accessories.group_by(&:resource_type).each do |type, resources| %>
+          <div class="mb-4 last:mb-0">
+            <div class="flex items-center gap-1.5 text-[10px] font-semibold text-muted uppercase tracking-wider mb-2">
+              <%= resource_icon(type.icon) %>
+              <%= type.name.pluralize %>
+            </div>
+            <div class="space-y-2">
+              <% resources.each do |acc| %>
+                <label class="flex items-center gap-3 cursor-pointer p-2 rounded-md border border-card-border hover:bg-hover/50 transition-colors <%= 'bg-sage/5 border-sage/30' if selected_ids.include?(acc.id) %>">
+                  <input type="checkbox" name="accessory_ids[]" value="<%= acc.id %>"
+                         class="rounded border-card-border text-sage focus:ring-sage/30"
+                         <%= 'checked' if selected_ids.include?(acc.id) %>>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium"><%= acc.name %></div>
+                    <% if acc.description.present? %>
+                      <div class="text-xs text-muted"><%= acc.description %></div>
+                    <% end %>
+                  </div>
+                  <% if acc.unavailable? %>
+                    <%= render(BadgeComponent.new(variant: :warning)) { "Unavailable" } %>
+                  <% end %>
+                </label>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# Submit — always visible %>
+  <div class="flex items-center justify-between">
+    <%= render(ButtonComponent.new(href: admin_resources_path, variant: :ghost)) { t("admin.resources.form.cancel_button") } %>
+    <%= render(ButtonComponent.new(type: "submit")) { @resource.new_record? ? t("admin.resources.form.create_button") : t("admin.resources.form.update_button") } %>
+  </div>
+<% end %>

@@ -1,0 +1,64 @@
+<%= render(CardComponent.new) do |card| %>
+  <% card.with_header do %>
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-base font-medium"><%= @resource.display_name %></h2>
+      <% case state %>
+      <% when :active %>
+        <% if overdue? %>
+          <%= render(BadgeComponent.new(variant: :danger)) { t("reservations.status.overdue") } %>
+        <% else %>
+          <%= render(BadgeComponent.new(variant: :sage)) { t("reservations.status.in_use") } %>
+        <% end %>
+      <% when :ended %>
+        <%= render(BadgeComponent.new(variant: :success)) { t("reservations.status.returned") } %>
+      <% when :upcoming %>
+        <%= render(BadgeComponent.new(variant: :sage)) { t("reservations.status.reserved") } %>
+      <% else %>
+        <%= render(BadgeComponent.new(variant: :default)) { t("reservations.status.available") } %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% case state %>
+  <% when :active %>
+    <div class="space-y-1">
+      <div class="text-sm text-muted"><%= t("reservations.status.reserved_by") %></div>
+      <div class="text-lg font-medium"><%= @booking.display_name %></div>
+      <div class="text-sm text-muted">
+        <%= @booking.start_at.strftime("%a %-d %b, %H:%M") %> → <%= @booking.end_at.strftime("%H:%M") %>
+      </div>
+    </div>
+
+    <%# A late return is normal and fixable — the trip can still be closed here. %>
+    <% if overdue? %>
+      <p class="mt-3 text-sm text-danger">
+        <%= t("reservations.status.overdue_note", time: @booking.end_at.strftime("%a %-d %b, %H:%M")) %>
+      </p>
+    <% end %>
+
+    <% if actions? %>
+      <div class="mt-5"><%= actions %></div>
+    <% end %>
+
+  <% when :ended %>
+    <p class="text-sm">
+      <%= t("reservations.status.already_ended", name: @recent_booking.display_name) %>
+    </p>
+
+  <%# The car is free and this trip has not started yet; show when it can start. %>
+  <% when :upcoming %>
+    <div class="space-y-1">
+      <div class="text-sm text-muted"><%= t("reservations.status.next_reservation") %></div>
+      <div class="text-lg font-medium"><%= @upcoming_booking.display_name %></div>
+      <div class="text-sm text-muted">
+        <%= @upcoming_booking.start_at.strftime("%a %-d %b, %H:%M") %> → <%= @upcoming_booking.end_at.strftime("%H:%M") %>
+      </div>
+    </div>
+    <p class="mt-3 text-sm">
+      <%= t("reservations.status.starts_later", time: checkout_opens_at.strftime("%H:%M")) %>
+    </p>
+
+  <% else %>
+    <p class="text-sm text-muted"><%= t("reservations.status.no_active") %></p>
+  <% end %>
+<% end %>

@@ -1,0 +1,40 @@
+<h2>Kørsel <%= @sheet.month_label %></h2>
+
+<p>
+  Her er månedsoversigten for <%= @sheet.month_label %>, så du kan rette til inden
+  måneden lukkes. Regnearket er vedhæftet.
+</p>
+
+<table cellpadding="6" cellspacing="0" border="0" style="border-collapse:collapse">
+  <tr>
+    <td style="border-bottom:1px solid #ddd"><strong>Ture i alt</strong></td>
+    <td style="border-bottom:1px solid #ddd" align="right"><strong><%= @trips %></strong></td>
+  </tr>
+  <tr>
+    <td style="border-bottom:1px solid #ddd">Cykler</td>
+    <td style="border-bottom:1px solid #ddd" align="right"><%= number_with_precision(@sheet.total_cykler, precision: 2) %> kr</td>
+  </tr>
+  <tr>
+    <td style="border-bottom:1px solid #ddd">Biler</td>
+    <td style="border-bottom:1px solid #ddd" align="right"><%= number_with_precision(@sheet.total_biler, precision: 2) %> kr</td>
+  </tr>
+  <tr>
+    <td style="border-bottom:1px solid #ddd">Medlemmer (bankoverførsel)</td>
+    <td style="border-bottom:1px solid #ddd" align="right"><%= number_with_precision(@sheet.bank_total, precision: 2) %> kr</td>
+  </tr>
+</table>
+
+<% if @sheet.uncategorised_count.positive? %>
+  <p style="color:#A0442A">
+    Bemærk: <%= @sheet.uncategorised_count %> ture mangler en takstkategori og er
+    regnet som Medlem.
+  </p>
+<% end %>
+
+<p>
+  <% if @closed %>
+    Måneden er <strong>lukket</strong>.
+  <% else %>
+    Måneden er <strong>ikke lukket</strong> endnu — rettelser er stadig mulige.
+  <% end %>
+</p>

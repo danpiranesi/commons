@@ -1,0 +1,30 @@
+<%# Admin-only: which member a booking belongs to. Used to book on behalf of
+    somebody on the new form, and to hand a booking to somebody else on the edit form.
+    The hidden field must stay inside the user-search controller as its "hidden" target. %>
+<div class="rounded-lg border border-admin/40 bg-admin/5 p-4">
+  <div class="flex items-center gap-2 mb-3 text-admin">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <h3 class="text-sm font-medium"><%= title %></h3>
+  </div>
+
+  <div data-controller="user-search"
+       data-user-search-search-url-value="<%= search_admin_users_path %>">
+    <input type="hidden" name="target_user_id" value="<%= user.id %>" data-user-search-target="hidden">
+
+    <label class="block text-xs text-muted mb-1"><%= t("bookings.form.booking_for_label") %></label>
+    <div class="relative">
+      <input type="text"
+             data-user-search-target="input"
+             data-action="input->user-search#search"
+             class="form-input focus:ring-admin/30 focus:border-admin"
+             value="<%= user.name %>"
+             placeholder="<%= t("bookings.form.booking_for_placeholder") %>"
+             autocomplete="off">
+      <div data-user-search-target="results"
+           class="hidden absolute z-10 left-0 right-0 mt-1 bg-white border border-card-border rounded-lg shadow-lg overflow-hidden text-sm">
+      </div>
+    </div>
+    <p class="text-xs text-muted mt-1" data-user-search-target="selected"></p>
+    <p class="text-xs text-admin/80 mt-1"><%= hint %></p>
+  </div>
+</div>

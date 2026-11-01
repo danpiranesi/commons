@@ -1,0 +1,55 @@
+<%= render(PageHeaderComponent.new(title: t("admin.users.index.title"), subtitle: t("admin.users.index.subtitle", count: @users.size))) %>
+
+<div class="bg-white rounded-lg border border-card-border shadow-sm overflow-hidden">
+  <table class="w-full text-sm border-collapse">
+    <thead>
+      <tr class="border-b border-card-border text-left text-xs text-muted uppercase tracking-wider">
+        <th class="px-4 py-2.5 font-medium"><%= t("admin.users.index.col_name") %></th>
+        <th class="px-4 py-2.5 font-medium"><%= t("admin.users.index.col_type") %></th>
+        <th class="px-4 py-2.5 font-medium"><%= t("admin.users.index.col_housing") %></th>
+        <th class="px-4 py-2.5 font-medium"><%= t("admin.users.index.col_phone") %></th>
+        <th class="px-4 py-2.5 font-medium"><%= t("admin.users.index.col_accounting") %></th>
+        <th class="px-4 py-2.5 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr class="border-b border-card-border last:border-0 hover:bg-hover/30">
+          <td class="px-4 py-2.5">
+            <div class="font-medium flex items-center gap-1.5">
+              <%= user.name %>
+              <%# Flags a member whose bookkeeping fields aren't filled in yet. %>
+              <% if user.missing_details? %>
+                <span class="text-danger shrink-0"
+                      title="<%= t('admin.users.index.missing_details', fields: user.missing_admin_fields.map { |f| t("admin.users.index.field.#{f}") }.join(', ')) %>">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </span>
+              <% end %>
+            </div>
+            <div class="text-xs text-muted"><%= user.email.presence || "—" %></div>
+          </td>
+          <td class="px-4 py-2.5">
+            <%= render(BadgeComponent.new(variant: user.employee? ? :warning : :default)) { user.user_type } %>
+            <% if user.admin? %>
+              <%= render(BadgeComponent.new(variant: :sage)) { "admin" } %>
+            <% end %>
+          </td>
+          <td class="px-4 py-2.5 text-xs text-muted"><%= user.housing_unit.presence || "—" %></td>
+          <td class="px-4 py-2.5 text-xs font-mono"><%= user.phone.presence || "—" %></td>
+          <td class="px-4 py-2.5 text-xs">
+            <% if user.accounting_account.present? %>
+              <span class="font-mono"><%= user.accounting_account %></span>
+              <span class="text-muted ml-1"><%= user.accounting_name %></span>
+            <% else %>
+              <span class="text-muted">—</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-2.5 text-right">
+            <%= link_to t("admin.users.index.edit_link"), edit_admin_user_path(user),
+                  class: "text-xs text-sage hover:text-sage/80 font-medium" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

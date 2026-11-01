@@ -1,0 +1,13 @@
+<div class="min-h-[60vh] flex items-center justify-center">
+  <div class="bg-white rounded-lg border border-card-border shadow-sm p-8 w-full max-w-sm text-center">
+    <img src="/logo.svg" alt="Commons" class="h-12 mx-auto mb-4">
+    <h1 class="text-xl font-medium mb-2"><%= t("sessions.new.title") %></h1>
+    <p class="text-sm text-muted mb-6"><%= t("sessions.new.subtitle") %></p>
+
+    <% if flash[:alert] %>
+      <div class="bg-danger/10 text-danger text-sm rounded px-3 py-2 mb-4"><%= flash[:alert] %></div>
+    <% end %>
+
+    <%= link_to t("sessions.new.login_button"), login_path, class: "inline-block w-full bg-sage text-white rounded-md px-4 py-2.5 text-sm font-medium hover:bg-sage/90 transition-colors" %>
+  </div>
+</div>

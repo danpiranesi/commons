@@ -1,0 +1,21 @@
+<% content_for :title, t("schedule.title") %>
+<%# Unattended wall display: refresh every 60s so it never goes stale, and reset
+    to the idle schedule after 5 min of no interaction (idle Stimulus controller). %>
+<% content_for :head do %>
+  <meta http-equiv="refresh" content="60">
+<% end %>
+
+<div data-controller="idle"
+     data-idle-timeout-value="300000"
+     data-idle-url-value="<%= schedule_path %>"
+     class="max-w-[1400px] mx-auto px-4 py-6">
+  <div class="flex items-baseline justify-between mb-5">
+    <div>
+      <h1 class="text-2xl font-medium"><%= t("schedule.title") %></h1>
+      <p class="text-sm text-muted mt-0.5"><%= week_label(@week_start) %></p>
+    </div>
+    <p class="text-sm text-muted hidden sm:block"><%= t("schedule.tap_hint") %></p>
+  </div>
+
+  <%= render "calendar/week_grid" %>
+</div>

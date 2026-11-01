@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="da">
+  <head>
+    <title><%= content_for(:title) || "Commons" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+
+    <%= yield :head %>
+  </head>
+
+  <body class="min-h-screen flex flex-col bg-bg text-primary font-sans">
+    <main class="flex-1">
+      <%= yield %>
+    </main>
+  </body>
+</html>

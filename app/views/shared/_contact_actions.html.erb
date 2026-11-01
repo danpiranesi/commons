@@ -1,0 +1,21 @@
+<%# Contact controls for another member: tap-to-call and a Discourse forum message.
+    Locals: user, resource. Renders nothing if there's no way to reach them. %>
+<% msg_url = contact_message_url(user, resource) %>
+<% if user.phone.present? || msg_url %>
+  <div class="flex flex-wrap items-center gap-2 mt-2.5">
+    <% if user.phone.present? %>
+      <a href="tel:<%= user.phone.gsub(/\s+/, '') %>"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-card-border bg-white text-primary hover:bg-hover transition-colors no-underline">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <%= user.phone %>
+      </a>
+    <% end %>
+    <% if msg_url %>
+      <%= link_to msg_url, target: "_blank", rel: "noopener",
+            class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-sage/40 text-sage hover:bg-sage/5 transition-colors no-underline" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <%= t("neighbour.message_button") %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

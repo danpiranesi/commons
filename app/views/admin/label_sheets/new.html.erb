@@ -1,0 +1,101 @@
+<%= render(PageHeaderComponent.new(
+      title: t("admin.labels.title"),
+      subtitle: t("admin.labels.subtitle", count: @resources.size),
+      breadcrumbs: [[t("admin.nav.all_resources"), admin_resources_path], [t("admin.labels.crumb"), nil]])) %>
+
+<%= form_with url: admin_label_sheet_path, method: :post, data: { turbo: false } do %>
+  <% @resources.each do |resource| %>
+    <%= hidden_field_tag "resource_ids[]", resource.id, id: nil %>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# ── Layout controls ─────────────────────────────────────── %>
+    <div class="lg:col-span-2 space-y-4">
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("admin.labels.sheet_title") %></h3>
+        <% end %>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <% {
+               page_width:   t("admin.labels.page_width"),
+               page_height:  t("admin.labels.page_height"),
+               label_width:  t("admin.labels.label_width"),
+               label_height: t("admin.labels.label_height"),
+               columns:      t("admin.labels.columns"),
+               rows:         t("admin.labels.rows"),
+               margin_left:  t("admin.labels.margin_left"),
+               margin_top:   t("admin.labels.margin_top"),
+               gutter_x:     t("admin.labels.gutter_x"),
+               gutter_y:     t("admin.labels.gutter_y")
+             }.each do |key, label| %>
+            <div>
+              <label class="block text-xs text-muted mb-1"><%= label %></label>
+              <input type="number" step="<%= %i[columns rows].include?(key) ? 1 : 0.1 %>"
+                     name="<%= key %>" value="<%= @layout[key] %>"
+                     class="form-input w-full text-sm py-1.5">
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("admin.labels.calibration_title") %></h3>
+        <% end %>
+        <p class="text-sm text-muted mb-4"><%= t("admin.labels.calibration_hint") %></p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs text-muted mb-1"><%= t("admin.labels.start_offset") %></label>
+            <input type="number" step="1" min="0" name="start_offset" value="<%= @layout[:start_offset] %>"
+                   class="form-input w-full text-sm py-1.5">
+          </div>
+          <div>
+            <label class="block text-xs text-muted mb-1"><%= t("admin.labels.offset_x") %></label>
+            <input type="number" step="0.1" name="offset_x" value="<%= @layout[:offset_x] %>"
+                   class="form-input w-full text-sm py-1.5">
+          </div>
+          <div>
+            <label class="block text-xs text-muted mb-1"><%= t("admin.labels.offset_y") %></label>
+            <input type="number" step="0.1" name="offset_y" value="<%= @layout[:offset_y] %>"
+                   class="form-input w-full text-sm py-1.5">
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2 mt-4 text-sm">
+          <input type="checkbox" name="outlines" value="1" class="rounded border-card-border">
+          <%= t("admin.labels.outlines") %>
+        </label>
+      <% end %>
+    </div>
+
+    <%# ── Summary + generate ──────────────────────────────────── %>
+    <div>
+      <div class="sticky top-6 space-y-4">
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header do %>
+            <h3 class="text-sm font-medium"><%= t("admin.labels.selected_title") %></h3>
+          <% end %>
+          <ul class="text-sm space-y-1 max-h-64 overflow-auto">
+            <% @resources.each do |resource| %>
+              <li class="truncate"><%= resource.display_name %></li>
+            <% end %>
+          </ul>
+          <p class="text-xs text-muted mt-3 pt-3 border-t border-card-border">
+            <%= t("admin.labels.summary", labels: @resources.size,
+                  per_sheet: @layout[:columns] * @layout[:rows], sheets: @sheets) %>
+          </p>
+        <% end %>
+
+        <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
+          <%= t("admin.labels.scale_warning") %>
+        </div>
+
+        <%= render(ButtonComponent.new(variant: :primary, full_width: true, type: "submit")) do %>
+          <%= t("admin.labels.generate") %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

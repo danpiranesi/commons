@@ -1,0 +1,21 @@
+<%# The current user's future reservations as small clickable cards (edit),
+    pinned above the calendar (outside the frame so they survive week nav). %>
+<% if @upcoming_bookings.present? && @upcoming_bookings.any? %>
+  <div class="mb-6">
+    <div class="text-xs font-medium text-muted uppercase tracking-wider mb-2"><%= t("calendar.upcoming.heading") %></div>
+    <div class="flex flex-wrap gap-3">
+      <% @upcoming_bookings.each do |booking| %>
+        <%= link_to edit_booking_path(booking),
+              class: "block bg-white border border-card-border rounded-lg px-4 py-3 min-w-[170px] max-w-[220px] hover:shadow-sm hover:border-sage transition-all no-underline text-primary",
+              data: { turbo_frame: "_top" } do %>
+          <div class="text-sm font-medium truncate"><%= booking.resource.display_name %></div>
+          <div class="text-xs text-muted mt-0.5"><%= booking.start_at.strftime("%a %-d %b") %></div>
+          <div class="text-xs text-muted"><%= booking.start_at.strftime("%H:%M") %>&ndash;<%= booking.end_at.strftime("%H:%M") %></div>
+          <% if booking.destination.present? %>
+            <div class="text-xs text-sage/70 mt-1 truncate">&rarr; <%= booking.destination %></div>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

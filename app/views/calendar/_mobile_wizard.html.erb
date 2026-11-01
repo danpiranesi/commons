@@ -1,0 +1,165 @@
+<%# Mobile booking wizard — single scrollable screen with progressive disclosure %>
+
+<% car_type    = @resource_types.find { |rt| rt.name == "Car" } %>
+<% bike_type   = @resource_types.find { |rt| rt.name == "Bicycle" } %>
+<% other_types = @resource_types.reject { |rt| rt.name.in?(%w[Car Bicycle Toll]) } %>
+<% active_type_id = if params[:filter] == "other"
+     "other"
+   elsif @resource_type_id.present?
+     @resource_type_id.to_s
+   else
+     car_type&.id&.to_s
+   end %>
+
+<%# Rolling horizon: bookable from today up to the horizon (nil = unlimited). %>
+<% period_start = Date.current %>
+<% period_end   = @booking_horizon_end %>
+
+<% wizard_strings = {
+     pick_date:            t("calendar.mobile_wizard.prompt_pick_date"),
+     pick_start_date:      t("calendar.mobile_wizard.prompt_pick_start_date"),
+     pick_end_date:        t("calendar.mobile_wizard.prompt_pick_end_date"),
+     pick_start_time:      t("calendar.mobile_wizard.prompt_pick_start_time"),
+     pick_end_time_single: t("calendar.mobile_wizard.prompt_pick_end_time_single"),
+     pick_end_time_multi:  t("calendar.mobile_wizard.prompt_pick_end_time_multi"),
+     complete:             t("calendar.mobile_wizard.prompt_complete"),
+     start:                t("calendar.mobile_wizard.summary_start"),
+     end:                  t("calendar.mobile_wizard.summary_end"),
+     change:               t("calendar.mobile_wizard.summary_change"),
+     hour:                 t("calendar.mobile_wizard.time_hour"),
+     minute:               t("calendar.mobile_wizard.time_minute")
+   } %>
+<div data-controller="wizard-date-picker"
+     data-wizard-date-picker-period-start-value="<%= period_start %>"
+     data-wizard-date-picker-period-end-value="<%= period_end %>"
+     data-wizard-date-picker-today-value="<%= Date.current %>"
+     data-wizard-date-picker-type-id-value="<%= active_type_id %>"
+     data-wizard-date-picker-strings-value="<%= wizard_strings.to_json %>">
+
+  <%# ── Resource type tabs ── %>
+  <div class="flex items-center gap-1 bg-white border border-card-border rounded-lg p-1 mb-4">
+    <% if car_type %>
+      <%= link_to calendar_path(resource_type_id: car_type.id),
+            class: "flex-1 py-2 text-sm font-medium flex items-center justify-center gap-1 rounded-md transition-colors #{active_type_id == car_type.id.to_s ? 'bg-[#E8E6E0] text-primary' : 'text-muted hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } do %>
+        <%= resource_icon(car_type.icon) %> <%= t("calendar.mobile_wizard.tab_cars") %>
+      <% end %>
+    <% end %>
+    <% if bike_type %>
+      <%= link_to calendar_path(resource_type_id: bike_type.id),
+            class: "flex-1 py-2 text-sm font-medium flex items-center justify-center gap-1 rounded-md transition-colors #{active_type_id == bike_type.id.to_s ? 'bg-[#E8E6E0] text-primary' : 'text-muted hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } do %>
+        <%= resource_icon(bike_type.icon) %> <%= t("calendar.mobile_wizard.tab_bikes") %>
+      <% end %>
+    <% end %>
+    <% if other_types.any? %>
+      <%= link_to calendar_path(filter: "other"),
+            class: "flex-1 py-2 text-sm font-medium flex items-center justify-center gap-1 rounded-md transition-colors #{active_type_id == 'other' ? 'bg-[#E8E6E0] text-primary' : 'text-muted hover:bg-hover'}",
+            data: { turbo_frame: "calendar" } do %>
+        <%= t("calendar.mobile_wizard.tab_other") %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# ── Step 1: multi-day journey? ── %>
+  <label class="flex items-center justify-between px-4 py-3 mb-4 bg-white border border-card-border rounded-lg cursor-pointer">
+    <span class="text-sm font-medium text-primary"><%= t("calendar.mobile_wizard.multi_day_label") %></span>
+    <input type="checkbox" data-action="change->wizard-date-picker#toggleMultiDay"
+           class="rounded border-card-border text-sage focus:ring-sage/30">
+  </label>
+
+  <%# ── Step guidance — sits above the calendar and slides to reveal each new
+      instruction. overflow-hidden clips the slide so the page never shifts. ── %>
+  <div class="overflow-hidden mb-3">
+    <p class="text-center text-sm font-semibold text-primary" role="status" aria-live="polite" data-wizard-date-picker-target="prompt">
+      <%= t("calendar.mobile_wizard.prompt_pick_date") %>
+    </p>
+  </div>
+
+  <%# ── Calendar — one month at a time, paged with the arrows. ── %>
+  <% months_to_show = if period_start && period_end
+       start_m = [period_start, Date.current].max.beginning_of_month
+       end_m   = period_end.end_of_month
+       months  = []
+       cur     = start_m
+       while cur <= end_m
+         months << cur
+         cur = cur >> 1
+       end
+       months
+     else
+       [Date.current.beginning_of_month]
+     end %>
+
+  <div data-wizard-date-picker-target="calendar" data-controller="month-pager">
+    <%# Month navigation — hidden when there is only one month to show. %>
+    <div class="flex items-center justify-between mb-3 <%= 'invisible' if months_to_show.size <= 1 %>">
+      <button type="button" data-action="month-pager#prev" data-month-pager-target="prev"
+              class="p-2 rounded-md border border-card-border text-primary hover:bg-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="text-sm font-semibold text-primary" data-month-pager-target="label"><%= I18n.l(months_to_show.first, format: "%B %Y") %></span>
+      <button type="button" data-action="month-pager#next" data-month-pager-target="next"
+              class="p-2 rounded-md border border-card-border text-primary hover:bg-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <% months_to_show.each_with_index do |month_start, idx| %>
+      <div data-month-pager-target="month" data-label="<%= I18n.l(month_start, format: "%B %Y") %>" class="<%= 'hidden' unless idx.zero? %>">
+        <div class="grid grid-cols-7 mb-1">
+          <% t("calendar.day_abbreviations").each do |d| %>
+            <div class="text-center text-xs font-medium text-muted py-1"><%= d %></div>
+          <% end %>
+        </div>
+
+        <div class="grid grid-cols-7 gap-y-1">
+          <% first_cell = month_start.beginning_of_week(:monday) %>
+          <% last_cell  = month_start.end_of_month.end_of_week(:monday) %>
+          <% (first_cell..last_cell).each do |day| %>
+            <% in_month   = day.month == month_start.month %>
+            <% is_past    = day < Date.current %>
+            <% in_period  = period_end.nil? || (period_start..period_end).cover?(day) %>
+            <% disabled   = !in_month || is_past || !in_period %>
+            <%# aria-label carries the full date; the visible number alone is
+                meaningless read aloud. Disabled days are hidden from the reader
+                so it only offers days that can actually be chosen. %>
+            <button type="button"
+                    class="h-11 w-full flex items-center justify-center text-sm rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage
+                           <%= disabled ? 'text-muted/50 cursor-not-allowed' : 'text-primary hover:bg-[#E8E6E0] cursor-pointer' %>
+                           <%= !in_month ? 'invisible' : '' %>"
+                    <%= 'disabled' if disabled %>
+                    <%= 'aria-hidden=true' if disabled || !in_month %>
+                    aria-label="<%= l(day, format: :long) %>"
+                    data-date="<%= day.iso8601 %>"
+                    data-action="click->wizard-date-picker#selectDay">
+              <span aria-hidden="true"><%= day.day %></span>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ── Start: the chosen date and its time picker share one frame, so it's clear
+      they're one setting. Flashes when the time step appears. ── %>
+  <div class="hidden mb-4 rounded-lg border-2 border-sage/50 bg-sage/5 p-4" data-wizard-date-picker-target="startGroup">
+    <div data-wizard-date-picker-target="startSummary"></div>
+    <div class="hidden mt-3" data-wizard-date-picker-target="startTimeSlots"></div>
+  </div>
+
+  <%# ── End: same framed date + time pairing. ── %>
+  <div class="hidden mb-4 rounded-lg border-2 border-sage/50 bg-sage/5 p-4" data-wizard-date-picker-target="endGroup">
+    <div data-wizard-date-picker-target="endSummary"></div>
+    <div class="hidden mt-3" data-wizard-date-picker-target="endTimeSlots"></div>
+  </div>
+
+  <%# ── Continue button (shown when complete) ── %>
+  <div class="hidden mt-2 mb-4" data-wizard-date-picker-target="continueButton">
+    <button type="button"
+            class="w-full py-3.5 rounded-xl bg-[#6B7C60] text-white text-sm font-medium"
+            data-action="click->wizard-date-picker#search">
+      <%= t("calendar.mobile_wizard.search_button") %>
+    </button>
+  </div>
+</div>

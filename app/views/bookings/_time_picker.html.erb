@@ -1,0 +1,57 @@
+<%# Date + time picker with 30-min intervals. The date uses a Monday-first
+    month grid rather than <input type="date">, whose native dialog starts the
+    week on Sunday on Android; the value is a plain ISO date in a hidden field. %>
+<% time_value = value || Time.current.change(hour: 8) %>
+<% date_val = time_value.strftime("%Y-%m-%d") %>
+<% hour_val = time_value.hour %>
+<% min_val = time_value.min < 30 ? 0 : 30 %>
+<% max_date = local_assigns[:max] %>
+
+<div class="flex flex-wrap items-center gap-2">
+  <div class="relative flex-1 min-w-[9rem]"
+       data-controller="date-picker"
+       data-date-picker-months-value="<%= t('date.month_names').compact.to_json %>"
+       data-date-picker-days-value="<%= t('date.abbr_day_names_monday_first', default: %w[Mon Tue Wed Thu Fri Sat Sun]).to_json %>"
+       data-date-picker-today-value="<%= Date.current.strftime('%Y-%m-%d') %>"
+       <%= "data-date-picker-max-value=#{max_date.strftime('%Y-%m-%d')}".html_safe if max_date %>>
+    <input type="hidden" name="<%= prefix %>[date]" value="<%= date_val %>"
+           data-date-picker-target="hidden"
+           data-action="change->booking-form#updatePreview">
+
+    <button type="button"
+            class="form-input w-full text-left"
+            aria-haspopup="dialog" aria-expanded="false"
+            data-date-picker-target="display"
+            data-action="date-picker#toggle"></button>
+
+    <div role="dialog" aria-label="<%= t('bookings.form.pick_date') %>"
+         class="hidden absolute z-30 mt-1 left-0 w-[17rem] bg-white border border-card-border rounded-lg shadow-lg p-3"
+         data-date-picker-target="popover">
+      <div class="flex items-center justify-between mb-2">
+        <button type="button" class="px-2 py-1 rounded hover:bg-hover text-sm"
+                aria-label="<%= t('bookings.form.prev_month') %>"
+                data-action="date-picker#prevMonth">&lsaquo;</button>
+        <span class="text-sm font-medium" data-date-picker-target="monthLabel"></span>
+        <button type="button" class="px-2 py-1 rounded hover:bg-hover text-sm"
+                aria-label="<%= t('bookings.form.next_month') %>"
+                data-action="date-picker#nextMonth">&rsaquo;</button>
+      </div>
+      <div class="grid grid-cols-7 gap-0.5" data-date-picker-target="grid"></div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 shrink-0">
+    <select name="<%= prefix %>[hour]" class="form-select w-auto"
+            data-action="change->booking-form#updatePreview">
+      <% (0..23).each do |h| %>
+        <option value="<%= h %>" <%= 'selected' if h == hour_val %>><%= h.to_s.rjust(2, '0') %></option>
+      <% end %>
+    </select>
+    <span class="text-sm text-muted">:</span>
+    <select name="<%= prefix %>[min]" class="form-select w-auto"
+            data-action="change->booking-form#updatePreview">
+      <option value="0" <%= 'selected' if min_val == 0 %>>00</option>
+      <option value="30" <%= 'selected' if min_val == 30 %>>30</option>
+    </select>
+  </div>
+</div>

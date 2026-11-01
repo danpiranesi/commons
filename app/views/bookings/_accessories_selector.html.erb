@@ -1,0 +1,71 @@
+<% if available_accessories&.any? %>
+  <% regular = available_accessories.reject { |a| a.resource_type.name == "Toll" } %>
+  <% toll_items = available_accessories.select { |a| a.resource_type.name == "Toll" } %>
+
+  <%# Regular accessories (checkbox) %>
+  <% if regular.any? %>
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-2"><%= t("bookings.accessories.title") %></p>
+      <div class="space-y-2">
+        <% regular.each do |acc| %>
+          <% selected = selected_ids.include?(acc.id) %>
+          <label class="flex items-center justify-between p-3 rounded-md border border-card-border cursor-pointer hover:bg-hover/50 transition-colors <%= 'bg-sage/5 border-sage/30' if selected %>">
+            <div class="flex items-center gap-3">
+              <input type="checkbox" name="accessory_ids[]" value="<%= acc.id %>"
+                     class="rounded border-card-border text-sage focus:ring-sage/30"
+                     data-action="change->booking-form#updatePreview"
+                     <%= 'checked' if selected %>>
+              <div class="flex items-center gap-2">
+                <span class="text-muted"><%= resource_icon(acc.resource_type.icon) %></span>
+                <div>
+                  <div class="text-sm font-medium"><%= acc.name %></div>
+                  <div class="text-xs text-muted"><%= acc.resource_type.name %></div>
+                </div>
+              </div>
+            </div>
+            <div class="text-right shrink-0 ml-3">
+              <% acc_price = acc.price_for(current_user.user_type) %>
+              <% if acc_price && acc_price.hour_rate > 0 %>
+                <div class="text-xs text-muted"><%= number_to_currency(acc_price.hour_rate, unit: "", precision: 0) %> DKK/hr</div>
+              <% elsif acc_price && acc_price.day_rate > 0 %>
+                <div class="text-xs text-muted"><%= number_to_currency(acc_price.day_rate, unit: "", precision: 0) %> DKK/day</div>
+              <% else %>
+                <span class="text-xs text-success"><%= t("bookings.accessories.free") %></span>
+              <% end %>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Tolls (quantity selector) %>
+  <% if toll_items.any? %>
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-2"><%= t("bookings.accessories.tolls_title") %></p>
+      <div class="space-y-3">
+        <% toll_items.each do |acc| %>
+          <% acc_price = acc.price_for(current_user.user_type) %>
+          <% qty = selected_quantities[acc.id] || 0 %>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-muted"><%= resource_icon(acc.resource_type.icon) %></span>
+              <div>
+                <span class="text-sm font-medium"><%= acc.name %></span>
+                <% if acc_price && acc_price.hour_rate > 0 %>
+                  <span class="text-xs text-muted ml-1"><%= number_to_currency(acc_price.hour_rate, unit: "", precision: 0) %> <%= t("bookings.accessories.dkk_each") %></span>
+                <% end %>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="number" name="toll_quantities[<%= acc.id %>]" value="<%= qty %>"
+                     class="form-input w-16 text-center text-sm py-1" min="0"
+                     data-action="input->booking-form#updatePreview">
+              <span class="text-xs text-muted"><%= t("bookings.accessories.crossings") %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+<% end %>

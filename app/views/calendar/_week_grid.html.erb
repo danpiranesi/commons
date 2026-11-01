@@ -1,0 +1,189 @@
+<%# compact: the phone copy (mobile "full week" view) — a narrower name column
+    and day columns, so more than one day fits on screen before scrolling. %>
+<% compact = local_assigns[:compact] %>
+<% name_col = compact ? "w-[88px] min-w-[88px] px-2" : "w-[200px] min-w-[200px] px-4" %>
+<div class="bg-white border border-card-border">
+  <table class="w-full text-sm border-collapse">
+    <%# A caption names the table for screen readers without showing on screen,
+        and scope= tells them which header each cell belongs to. %>
+    <caption class="sr-only">
+      <%= t("calendar.week_grid.table_caption", week: @week_start.cweek, range: week_label(@week_start)) %>
+    </caption>
+    <%# Day headers — sticky to the top of the viewport so the date row becomes the
+        page header once you scroll past the nav bar. h-14 sets the offset that the
+        resource-type section headers stick beneath (top-14). %>
+    <thead>
+      <tr>
+        <th scope="col" class="sticky top-0 left-0 z-30 h-14 bg-header text-header-text <%= name_col %> text-left text-xs font-medium uppercase tracking-wider shadow-[inset_-1px_0_0_0_#5A6B50,inset_0_-1px_0_0_#5A6B50]">
+          <%= t("calendar.week_grid.column_resource") %>
+        </th>
+        <% @days.each_with_index do |day, i| %>
+          <th scope="col" class="sticky top-0 z-20 h-14 bg-header w-[calc((100%-200px)/7)] <%= compact ? "min-w-[92px]" : "min-w-[110px]" %> px-2 text-center <%= i == 6 ? 'shadow-[inset_0_-1px_0_0_#5A6B50]' : 'shadow-[inset_0_-1px_0_0_#5A6B50,inset_-1px_0_0_0_#5A6B50]' %>">
+            <%# The abbreviation and bare day number are ambiguous when read aloud,
+                so screen readers get the full date instead. %>
+            <span class="sr-only"><%= l(day, format: :long) %><%= " — #{t('calendar.week_grid.today')}" if today?(day) %></span>
+            <div aria-hidden="true" class="text-[10px] text-header-text/70 font-medium uppercase tracking-wide"><%= day_names[day.cwday - 1] %></div>
+            <div aria-hidden="true" class="mt-0.5">
+              <% if today?(day) %>
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-header-text/20 text-header-text text-xs font-semibold"><%= day.day %></span>
+              <% else %>
+                <span class="text-sm font-medium text-header-text"><%= day.day %></span>
+              <% end %>
+            </div>
+          </th>
+        <% end %>
+      </tr>
+    </thead>
+
+    <%# One <tbody> per resource type so each type header is bounded by its own
+        section: it sticks just below the date row (top-14) and is pushed out /
+        traded for the next type's header as you scroll. %>
+    <% @resources.group_by(&:resource_type).each do |current_type, type_resources| %>
+      <tbody>
+        <tr>
+          <td colspan="8" class="sticky top-14 z-20 bg-header shadow-[inset_0_-1px_0_0_#5A6B50]">
+            <div class="flex items-center gap-2 px-4 py-2 text-[11px] font-semibold text-header-text uppercase tracking-wider">
+              <%= resource_icon(current_type.icon) %>
+              <span><%= current_type.name.pluralize %></span>
+              <span class="text-header-text/60 font-normal normal-case tracking-normal">· <%= type_resources.size %></span>
+            </div>
+          </td>
+        </tr>
+
+        <% type_resources.each do |resource| %>
+          <tr class="group">
+            <%# Resource name — sticky left column %>
+            <td class="sticky left-0 z-10 bg-header group-hover:bg-header-dark <%= compact ? "px-2 max-w-[88px] overflow-hidden" : "px-4" %> py-1.5 align-middle transition-colors shadow-[inset_-1px_0_0_0_#5A6B50,inset_0_-1px_0_0_#5A6B50]">
+              <%= link_to resource_path(resource), class: "block text-header-text hover:text-white transition-colors", data: { turbo_frame: "_top" } do %>
+                <% if resource.unavailable? || resource.recharging? %>
+                  <%# Operational status replaces the subtitle rows in the tight grid. %>
+                  <%= render(ResourceCardComponent.new(resource: resource, size: :grid, lines: 0, electric_indicator: resource.electric?, on_dark: true)) %>
+                  <% if resource.unavailable? %>
+                    <div class="text-[10px] text-red-200 leading-tight"><%= resource.unavailable_reason || t("calendar.week_grid.unavailable") %></div>
+                  <% else %>
+                    <div class="text-[10px] text-amber-200 leading-tight"><%= t("calendar.week_grid.recharging_until", time: resource.recharge_until.strftime('%H:%M')) %></div>
+                  <% end %>
+                <% else %>
+                  <%= render(ResourceCardComponent.new(resource: resource, size: :grid, lines: 2, electric_indicator: resource.electric?, on_dark: true)) %>
+                <% end %>
+              <% end %>
+            </td>
+
+            <%# Day cells %>
+            <% @days.each_with_index do |day, i| %>
+              <% day_bookings = bookings_for(resource, day, @bookings_by_resource) %>
+              <% is_recharging = resource.recharging? && resource.recharge_until.to_date >= day && day == Date.current %>
+              <td class="min-h-[44px] px-1 py-0.5 border-b border-card-border align-top <%= 'border-r' unless i == 6 %> <%= 'bg-sage/[0.04]' if today?(day) %> <%= 'bg-[#FAFAF8]' if past?(day) && !today?(day) %> <%= 'opacity-40' if resource.unavailable? %>">
+                <% if day_bookings.any? %>
+                  <% day_bookings.each do |booking| %>
+                    <% is_vehicle = booking.resource.tracks_mileage? %>
+                    <% link_target = booking.accessory_booking? ? booking_path(booking.parent_booking) : booking_path(booking) %>
+                    <% if booking.status == "returned" %>
+                      <%# Returned early — faded marker for the elapsed portion; the
+                          freed remainder of the day stays bookable via the + below. %>
+                      <%= link_to link_target,
+                          class: "block bg-[#EFEEEA] text-[#9A9A92] px-1.5 py-0.5 text-[11px] rounded hover:bg-[#E8E6E0] transition-colors truncate leading-tight mb-0.5",
+                          title: "#{booking.display_name} — #{t('calendar.week_grid.returned')} #{booking_display_end(booking).strftime('%H:%M')}",
+                          data: { turbo_frame: "_top" } do %>
+                        <div class="font-medium truncate line-through decoration-[#C4C4BE]"><%= booking.display_name %></div>
+                        <% if booking.start_at.to_date == day %>
+                          <div class="text-[11px]"><%= booking.start_at.strftime('%H:%M') %>–<%= booking_display_end(booking).strftime('%H:%M') %> · <%= t('calendar.week_grid.returned') %></div>
+                        <% end %>
+                        <%# Still the group's trip once returned, so keep the payer label. %>
+                        <% if booking.payer_label %>
+                          <div class="text-[11px] truncate">&#128176; <%= booking.payer_label %></div>
+                        <% end %>
+                      <% end %>
+                    <% elsif booking_starts_on?(booking, day) || day == @week_start %>
+                      <% overdue = booking.overdue? %>
+                      <%= link_to link_target,
+                          class: "block px-1.5 py-0.5 text-[11px] rounded transition-colors truncate leading-tight mb-0.5 #{overdue ? 'bg-red-100 text-red-700 ring-1 ring-red-400 animate-pulse hover:bg-red-200' : 'bg-sage/15 text-sage-text hover:bg-sage/25'}",
+                          title: "#{booking.display_name}#{booking.payer_label ? " (#{t('calendar.week_grid.paid_by', name: booking.payer_label)})" : ''}#{booking.destination.present? ? " → #{booking.destination}" : ''} — #{format_time_range(booking)}#{overdue ? " — #{t('calendar.week_grid.overdue')}" : ''}",
+                          data: { turbo_frame: "_top" } do %>
+                        <div class="flex items-center gap-1">
+                          <span class="font-medium truncate"><%= booking.display_name %></span>
+                          <% if is_vehicle && booking.rideshare_available? %>
+                            <span class="text-[11px] shrink-0" title="<%= t("calendar.week_grid.rideshare_tooltip") %>">&#128663;</span>
+                          <% end %>
+                        </div>
+                        <% if booking.start_at.to_date == day %>
+                          <div class="text-sage-text/90 text-[11px]"><%= booking.start_at.strftime('%H:%M') %>–<%= booking.end_at.to_date == day ? booking.end_at.strftime('%H:%M') : '' %></div>
+                        <% end %>
+                        <%# Who the trip is charged to, when that is not the driver. %>
+                        <% if booking.payer_label %>
+                          <div class="text-sage-text/90 text-[11px] truncate font-medium">&#128176; <%= booking.payer_label %></div>
+                        <% end %>
+                        <% if booking.accessory_booking? %>
+                          <div class="text-sage-text/90 text-[11px] truncate">w/ <%= booking.parent_booking.resource.display_name.truncate(20) %></div>
+                        <% elsif is_vehicle && booking.destination.present? %>
+                          <div class="text-sage-text/90 text-[11px] truncate">&rarr; <%= booking.destination %></div>
+                        <% end %>
+                        <% if booking.may_return_early? %>
+                          <div class="text-[11px]" title="May return early">&#10084;&#10084;&#10084;</div>
+                        <% end %>
+                      <% end %>
+                    <% else %>
+                      <%# Continuation day of a multi-day booking %>
+                      <%= link_to link_target,
+                          class: "block bg-sage/10 text-sage-text/90 px-1.5 py-0.5 text-[11px] rounded-sm hover:bg-sage/20 transition-colors truncate leading-tight mb-0.5",
+                          title: "#{booking.display_name} — #{format_time_range(booking)}",
+                          data: { turbo_frame: "_top" } do %>
+                        <div class="font-medium truncate text-sage-text/80"><%= booking.display_name %></div>
+                        <% if booking.end_at.to_date == day %>
+                          <div class="text-sage-text/75 text-[11px]"><%= t("calendar.week_grid.until", time: booking.end_at.strftime('%H:%M')) %></div>
+                        <% else %>
+                          <div class="text-sage-text/75 text-[11px] italic"><%= t("calendar.week_grid.continued") %></div>
+                        <% end %>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                  <%# Show + button if day still has bookable time slots %>
+                  <% if resource.bookable? && !past?(day) && bookable_day?(day) && held_by_name(resource, day).nil? %>
+                    <% day_full = day_bookings.any? { |b| b.start_at.to_date < day && b.end_at.to_date > day } ||
+                                  day_bookings.any? { |b| b.end_at.to_date > day && b.end_at.hour >= 23 } %>
+                    <% unless day_full %>
+                      <%= link_to new_booking_path(resource_id: resource.id, date: day),
+                          class: "flex items-center justify-center h-5 rounded hover:bg-sage/5 hover:outline hover:outline-1 hover:outline-sage/25 transition-all group/cell",
+                          title: t("calendar.week_grid.book_tooltip", resource: resource.display_name, day: day_names[day.cwday - 1], date: day.strftime('%-d %b')),
+                          data: { turbo_frame: "_top" } do %>
+                        <span class="text-sage-text/80 group-hover/cell:text-sage font-medium text-sm leading-none">+</span>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                <% elsif is_recharging %>
+                  <div class="flex items-center justify-center h-8 text-[10px] text-amber-600">
+                    &#9889; <%= t("calendar.week_grid.recharging") %>
+                  </div>
+                <% elsif resource.bookable? && !past?(day) && bookable_day?(day) %>
+                  <%# A car held for its fast bruger is shown as held rather than as a
+                      bookable cell, so members are not refused only after filling in the form. %>
+                  <% held = held_by_name(resource, day) %>
+                  <% if held %>
+                    <div class="flex items-center justify-center h-full w-full min-h-[36px] px-1 text-[10px] text-muted italic leading-tight text-center"
+                         title="<%= t("calendar.week_grid.held_tooltip", name: held) %>">
+                      <%= t("calendar.week_grid.held", name: held) %>
+                    </div>
+                  <% else %>
+                    <%= link_to new_booking_path(resource_id: resource.id, date: day),
+                        class: "flex items-center justify-center h-full w-full min-h-[36px] rounded hover:bg-sage/5 hover:outline hover:outline-1 hover:outline-sage/25 transition-all group/cell",
+                        title: t("calendar.week_grid.book_tooltip", resource: resource.display_name, day: day_names[day.cwday - 1], date: day.strftime('%-d %b')),
+                        data: { turbo_frame: "_top" } do %>
+                      <span class="text-sage-text/80 group-hover/cell:text-sage font-medium text-sm leading-none">+</span>
+                    <% end %>
+                  <% end %>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    <% end %>
+  </table>
+</div>
+
+<% if @resources.empty? %>
+  <%= render(EmptyStateComponent.new(
+    title: t("calendar.week_grid.empty_title"),
+    description: t("calendar.week_grid.empty_description")
+  )) %>
+<% end %>

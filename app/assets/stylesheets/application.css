@@ -1,0 +1,7 @@
+/*
+ * NOTE: This file is NOT the Tailwind build input and is not linked by any layout.
+ * The real stylesheet source is app/assets/tailwind/application.css, which the
+ * tailwindcss-rails gem compiles to app/assets/builds/tailwind.css (linked via
+ * `stylesheet_link_tag "tailwind"`). Edit the theme, tokens, and @utility rules
+ * there — not here.
+ */

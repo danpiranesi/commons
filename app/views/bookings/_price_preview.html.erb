@@ -1,0 +1,113 @@
+<div class="text-sm space-y-2">
+  <% if price.hour_rate > 0 %>
+    <% if price.day_rate > 0 && hours >= price.day_cap_hours %>
+      <%# Split into 24h day blocks + remainder, matching calculate_time_cost logic %>
+      <% full_days = (hours / 24).floor %>
+      <% remaining = hours - (full_days * 24) %>
+      <% if remaining >= price.day_cap_hours %>
+        <% total_day_blocks = full_days + 1 %>
+        <% leftover_hours = 0 %>
+      <% else %>
+        <% total_day_blocks = full_days %>
+        <% leftover_hours = remaining %>
+      <% end %>
+
+      <% if total_day_blocks > 0 %>
+        <div class="flex justify-between">
+          <span class="text-muted"><%= total_day_blocks %> <%= t("bookings.price_preview.day", count: total_day_blocks) %> x <%= number_to_currency(price.day_rate, unit: "", precision: 0) %> DKK</span>
+          <span><%= number_to_currency(total_day_blocks * price.day_rate, unit: "", precision: 0) %> DKK</span>
+        </div>
+      <% end %>
+
+      <% if leftover_hours > 0 %>
+        <div class="flex justify-between">
+          <span class="text-muted"><%= leftover_hours %> hrs x <%= number_to_currency(price.hour_rate, unit: "", precision: 0) %> DKK</span>
+          <span><%= number_to_currency(leftover_hours * price.hour_rate, unit: "", precision: 0) %> DKK</span>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="flex justify-between">
+        <span class="text-muted"><%= hours %> hrs x <%= number_to_currency(price.hour_rate, unit: "", precision: 0) %> DKK</span>
+        <span><%= number_to_currency(time_cost, unit: "", precision: 0) %> DKK</span>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if price.min_charge > 0 && hours > 0 && price.hour_rate > 0 && (hours * price.hour_rate) < price.min_charge %>
+    <div class="text-[10px] text-muted"><%= t("bookings.price_preview.min_charge_applied", amount: number_to_currency(price.min_charge, unit: "", precision: 0)) %></div>
+  <% end %>
+
+  <% if tracks_mileage && km_rate > 0 %>
+    <div class="flex justify-between text-muted">
+      <span><%= t("bookings.price_preview.km_driven_rate", rate: km_rate) %></span>
+      <span class="italic"><%= t("bookings.price_preview.on_return") %></span>
+    </div>
+  <% end %>
+
+  <% if defined?(accessory_costs) && accessory_costs&.any? %>
+    <% non_tolls = accessory_costs.reject { |a| a[:toll] } %>
+    <% toll_items = accessory_costs.select { |a| a[:toll] } %>
+
+    <% non_tolls.each do |acc| %>
+      <div class="flex justify-between">
+        <span class="text-muted truncate"><%= acc[:name] %></span>
+        <span class="shrink-0 ml-2"><%= number_to_currency(acc[:cost], unit: "", precision: 0) %> DKK</span>
+      </div>
+    <% end %>
+  <% else %>
+    <% toll_items = [] %>
+  <% end %>
+
+  <% rc = defined?(recurring_count) ? (recurring_count || 0) : 0 %>
+  <% if rc > 1 %>
+    <div class="border-t border-card-border pt-2 space-y-1">
+      <div class="flex justify-between text-muted">
+        <span><%= t("bookings.price_preview.per_day") %></span>
+        <span><%= number_to_currency(subtotal, unit: "", precision: 0) %> DKK</span>
+      </div>
+      <div class="flex justify-between text-muted">
+        <span><%= t("bookings.price_preview.x_days", count: rc) %></span>
+        <span><%= number_to_currency(subtotal * rc, unit: "", precision: 0) %> DKK</span>
+      </div>
+      <% toll_items.each do |acc| %>
+        <div class="flex justify-between">
+          <span class="text-muted truncate"><%= acc[:name] %> <span class="text-[10px]"><%= t("bookings.price_preview.one_time") %></span></span>
+          <span class="shrink-0 ml-2"><%= number_to_currency(acc[:cost], unit: "", precision: 0) %> DKK</span>
+        </div>
+      <% end %>
+      <div class="flex justify-between font-medium">
+        <span><%= t("bookings.price_preview.estimated_total") %></span>
+        <span><%= number_to_currency(total, unit: "", precision: 0) %> DKK</span>
+      </div>
+    </div>
+  <% else %>
+    <% toll_items.each do |acc| %>
+      <div class="flex justify-between">
+        <span class="text-muted truncate"><%= acc[:name] %></span>
+        <span class="shrink-0 ml-2"><%= number_to_currency(acc[:cost], unit: "", precision: 0) %> DKK</span>
+      </div>
+    <% end %>
+    <div class="border-t border-card-border pt-2 flex justify-between font-medium">
+      <span><%= t("bookings.price_preview.estimated_total") %></span>
+      <span><%= number_to_currency(total, unit: "", precision: 0) %> DKK</span>
+    </div>
+  <% end %>
+
+  <% if tracks_mileage && km_rate > 0 %>
+    <p class="text-[10px] text-muted pt-1"><%= t("bookings.price_preview.km_note") %></p>
+  <% end %>
+
+  <% if local_assigns[:car_minimum].present? %>
+    <div class="mt-2 flex justify-between text-xs text-muted border-t border-card-border pt-2">
+      <span><%= t("bookings.price_preview.minimum_label") %></span>
+      <span class="font-medium"><%= number_to_currency(car_minimum, unit: "", precision: 0) %> DKK</span>
+    </div>
+    <p class="text-[10px] text-muted"><%= t("bookings.price_preview.minimum_note") %></p>
+  <% end %>
+
+  <% if local_assigns[:billing_rate_label].present? %>
+    <div class="mt-2 rounded-md bg-sage/5 border border-sage/15 px-3 py-2 text-xs text-sage">
+      <%= billing_rate_label %>
+    </div>
+  <% end %>
+</div>

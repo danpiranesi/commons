@@ -1,0 +1,38 @@
+<%# Single decision point for what a driver can do with a live reservation, reused
+    by the QR page, active-booking panel and kiosk so they can't diverge:
+    a car that hasn't been checked in shows the start-of-trip check-in; once
+    checked in (or for non-mileage resources) it shows end + extend. %>
+<% rt = local_assigns[:return_to] %>
+<% if booking.needs_check_in? %>
+  <%= render "reservations/check_in_form", resource: resource, booking: booking, return_to: rt %>
+
+  <%# A driver who never checked in and is now bringing the car back must not be
+      steered into "starting" the trip at the reading they return with, so this
+      is a prominent button rather than small print. %>
+  <details class="group border-t border-card-border pt-4 mt-6">
+    <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer select-none flex items-center justify-center gap-2 w-full rounded-md border-2 border-danger/40 bg-white px-4 py-3 text-sm font-medium text-danger hover:bg-danger/5 transition-colors">
+      <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-open:rotate-90"><polyline points="9 18 15 12 9 6"/></svg>
+      <%= t("reservations.check_in.returning_instead") %>
+    </summary>
+    <div class="mt-4 space-y-4">
+      <p class="text-sm text-muted"><%= t("reservations.check_in.returning_hint") %></p>
+      <%= render "reservations/completion_form", resource: resource, booking: booking, return_to: rt,
+                 end_without_check_in: true %>
+    </div>
+  </details>
+<% else %>
+  <div class="space-y-6">
+    <%= render "reservations/completion_form", resource: resource, booking: booking, return_to: rt %>
+
+    <% if BookingRules.for(resource.resource_type).allow_extension? %>
+      <details class="border-t border-card-border pt-4">
+        <summary class="cursor-pointer text-sm text-muted select-none">
+          <%= t("reservations.extend.button") %>
+        </summary>
+        <div class="mt-4">
+          <%= render "reservations/extend_form", resource: resource, booking: booking, return_to: rt %>
+        </div>
+      </details>
+    <% end %>
+  </div>
+<% end %>

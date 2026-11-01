@@ -1,0 +1,35 @@
+<%# One destination group: a heading + its destinations, all editable/removable. %>
+<div class="rounded-lg border border-card-border p-3" data-destinations-editor-target="group">
+  <div class="flex items-center gap-2 mb-2">
+    <input type="text" value="<%= group %>"
+           placeholder="<%= t('admin.site_settings.destinations.group_placeholder') %>"
+           aria-label="<%= t('admin.site_settings.destinations.group_placeholder') %>"
+           data-destinations-editor-target="groupName"
+           data-action="input->destinations-editor#serialize"
+           class="form-input flex-1 font-medium">
+    <%# Order matters: it is the order members see. Up/down rather than drag, so
+        it works the same with a keyboard and on a phone. %>
+    <button type="button" data-action="destinations-editor#moveGroupUp" class="inline-flex items-center justify-center w-9 h-11 text-muted hover:text-primary rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+            title="<%= t('admin.site_settings.destinations.move_up') %>" aria-label="<%= t('admin.site_settings.destinations.move_up') %>">
+      <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+    <button type="button" data-action="destinations-editor#moveGroupDown" class="inline-flex items-center justify-center w-9 h-11 text-muted hover:text-primary rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+            title="<%= t('admin.site_settings.destinations.move_down') %>" aria-label="<%= t('admin.site_settings.destinations.move_down') %>">
+      <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <button type="button" data-action="destinations-editor#removeGroup"
+            class="inline-flex items-center justify-center w-11 h-11 text-muted hover:text-danger rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+            title="<%= t('admin.site_settings.destinations.remove_group') %>" aria-label="<%= t('admin.site_settings.destinations.remove_group') %>">
+      <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    </button>
+  </div>
+  <div class="space-y-2 pl-1" data-destinations-editor-target="cities">
+    <% Array(cities).each do |city| %>
+      <%= render "admin/site_settings/destination_row", city: city %>
+    <% end %>
+  </div>
+  <button type="button" data-action="destinations-editor#addDestination"
+          class="mt-2 text-xs font-medium text-sage hover:text-sage/80">
+    + <%= t('admin.site_settings.destinations.add_destination') %>
+  </button>
+</div>

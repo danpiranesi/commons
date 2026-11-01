@@ -1,0 +1,36 @@
+<%# Only members can book on behalf of this group, so this list is the access control. %>
+<%= render(CardComponent.new) do |card| %>
+  <% card.with_header do %>
+    <h3 class="text-sm font-medium"><%= t("admin.billing_groups.members_title") %></h3>
+  <% end %>
+  <p class="text-sm text-muted mb-4"><%= t("admin.billing_groups.members_hint") %></p>
+
+  <% if @group.members.any? %>
+    <ul class="divide-y divide-card-border mb-4">
+      <% @group.members.order(:name).each do |member| %>
+        <li class="flex items-center justify-between py-2">
+          <span class="text-sm"><%= member.name %></span>
+          <%= button_to t("admin.billing_groups.member_remove"),
+                remove_member_admin_billing_group_path(@group, user_id: member.id),
+                method: :delete, class: "text-xs text-danger hover:text-danger/80" %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-sm text-muted mb-4"><%= t("admin.billing_groups.members_empty") %></p>
+  <% end %>
+
+  <%= form_with url: add_member_admin_billing_group_path(@group), method: :post,
+        data: { turbo: false }, class: "flex items-end gap-2" do %>
+    <div class="flex-1">
+      <label class="block text-xs text-muted mb-1"><%= t("admin.billing_groups.member_add_label") %></label>
+      <select name="user_id" class="form-select w-full">
+        <option value=""><%= t("admin.billing_groups.member_add_prompt") %></option>
+        <% User.where.not(id: @group.member_ids).order(:name).each do |u| %>
+          <option value="<%= u.id %>"><%= u.name %></option>
+        <% end %>
+      </select>
+    </div>
+    <%= render(ButtonComponent.new(variant: :secondary, type: "submit")) { t("admin.billing_groups.member_add") } %>
+  <% end %>
+<% end %>

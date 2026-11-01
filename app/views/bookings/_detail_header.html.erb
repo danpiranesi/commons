@@ -1,0 +1,75 @@
+<%# Header shared by the booking page and its edit page, so editing looks like
+    the page you came from: same title, breadcrumbs and actions, and the same
+    two-step cancel / delete. `editing` swaps the Edit button for Save. %>
+<% editing = local_assigns[:editing] %>
+<% resource_title = booking_resource_title(@resource) %>
+<% crumbs = [["Calendar", root_path(date: @booking.start_at.to_date)]] %>
+<% crumbs += editing ? [[t("bookings.show.title", id: @booking.id), booking_path(@booking)], [t("bookings.show.edit_button"), nil]] : [[t("bookings.show.title", id: @booking.id), nil]] %>
+<% can_cancel = @booking.cancellable_by?(current_user) %>
+<% can_delete = @booking.deletable_by?(current_user) %>
+<div data-controller="reveal">
+<%= render(PageHeaderComponent.new(title: t("bookings.show.title", id: @booking.id), subtitle: resource_title, breadcrumbs: crumbs)) do |header| %>
+  <% header.with_actions do %>
+    <% if editing %>
+      <%# Submits the edit form below (linked by id), in the spot Edit had. %>
+      <%= render(ButtonComponent.new(type: "submit", form: "booking-edit-form", variant: :primary, size: :md)) { t("bookings.edit.submit_button") } %>
+    <% elsif (@booking.active? && (@booking.user == current_user || admin?)) || (admin? && @booking.status == "awaiting_return") %>
+      <%= render(ButtonComponent.new(href: edit_booking_path(@booking), variant: :primary, size: :md)) { t("bookings.show.edit_button") } %>
+    <% end %>
+    <%# Step one of two: opens the confirm panel below. Kept in the header so it
+        is easy to find, especially on a phone. %>
+    <% if can_cancel || can_delete %>
+      <%= render(ButtonComponent.new(variant: :danger, size: :md, type: "button",
+            data: { action: "reveal#toggle" }, aria: { controls: "booking-remove-panel" })) do %>
+        <%= can_cancel ? t("bookings.show.cancel_button") : t("bookings.show.delete_button") %>
+      <% end %>
+    <% end %>
+    <% if (msg_url = rideshare_message_url(@booking)) %>
+      <%= link_to msg_url, target: "_blank", rel: "noopener",
+            class: "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md border border-sage/40 text-sage hover:bg-sage/5 transition-colors" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <%= t("bookings.show.rideshare_message_button") %>
+      <% end %>
+    <% end %>
+    <%= render(ButtonComponent.new(href: root_path(date: @booking.start_at.to_date), variant: :secondary, size: :md)) { t("bookings.show.back_to_calendar") } %>
+  <% end %>
+<% end %>
+
+<%# Step two: the actual cancel / delete. Hidden until the button above opens it. %>
+<% if can_cancel || can_delete %>
+  <div id="booking-remove-panel" data-reveal-target="panel" hidden
+       class="mb-6 rounded-lg border border-danger/30 bg-danger/5 p-4 space-y-4">
+    <% if can_cancel %>
+      <%= form_with url: cancel_booking_path(@booking), method: :patch, class: "space-y-3", data: { turbo: false } do %>
+        <h2 class="text-sm font-medium text-danger"><%= t("bookings.show.cancel_confirm") %></h2>
+        <p class="text-xs text-muted"><%= t("bookings.show.cancel_warning") %></p>
+        <div>
+          <label for="cancel_reason" class="block text-xs text-muted mb-1"><%= t("bookings.show.cancel_reason_label") %></label>
+          <input type="text" id="cancel_reason" name="reason" class="form-input" placeholder="<%= t("bookings.show.cancel_reason_placeholder") %>">
+        </div>
+        <div class="flex flex-col-reverse sm:flex-row gap-2">
+          <%= render(ButtonComponent.new(variant: :secondary, type: "button", data: { action: "reveal#toggle" })) { t("bookings.show.keep_button") } %>
+          <%= render(ButtonComponent.new(variant: :stop, type: "submit")) { t("bookings.show.cancel_yes") } %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%# Delete — admin only, and only while nothing has been billed. Cancelling
+        leaves a record of a trip that was planned; deleting is for a booking that
+        was a mistake and should not be in the calendar at all. %>
+    <% if can_delete %>
+      <div class="<%= "border-t border-danger/20 pt-4" if can_cancel %> space-y-3">
+        <h2 class="text-sm font-medium text-danger"><%= t("bookings.show.delete_confirm") %></h2>
+        <p class="text-xs text-muted"><%= t("bookings.show.delete_warning") %></p>
+        <div class="flex flex-col-reverse sm:flex-row gap-2">
+          <% unless can_cancel %>
+            <%= render(ButtonComponent.new(variant: :secondary, type: "button", data: { action: "reveal#toggle" })) { t("bookings.show.keep_button") } %>
+          <% end %>
+          <%= button_to t("bookings.show.delete_yes"), booking_path(@booking), method: :delete,
+                class: "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors cursor-pointer bg-danger text-white hover:bg-[#8A3A24] px-4 py-2 text-sm w-full sm:w-auto" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+</div>

@@ -1,0 +1,69 @@
+<%= form_with model: [:admin, @resource_type], class: "space-y-6 max-w-2xl" do |f| %>
+  <% if @resource_type.errors.any? %>
+    <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20">
+      <ul class="list-disc list-inside text-xs">
+        <% @resource_type.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.resource_types.form.details_title") %></h2>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.name_label"),
+            tooltip: t("admin.resource_types.form.name_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_field :name, class: "form-input w-56", placeholder: t("admin.resource_types.form.name_placeholder") %>
+          <% if @resource_type.errors[:name].any? %><p class="text-xs text-danger mt-1"><%= @resource_type.errors[:name].first %></p><% end %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.billing_type_label"),
+            tooltip: t("admin.resource_types.form.billing_type_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.select :billing_type, ResourceType::BILLING_TYPES.map { |bt| [billing_type_label(bt), bt] }, {}, class: "form-select w-56" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.inherit_rules_label"),
+            description: t("admin.resource_types.form.inherit_rules_hint"), tooltip: t("admin.resource_types.form.inherit_rules_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <%= f.check_box :inherit_rules_from_car, class: "peer sr-only" %>
+            <div class="w-9 h-5 rounded-full bg-[#D8D8D2] peer-checked:bg-sage peer-focus:ring-2 peer-focus:ring-sage/30 transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></div>
+          </label>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.icon_label"),
+            description: t("admin.resource_types.form.icon_hint"), tooltip: t("admin.resource_types.form.icon_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_field :icon, class: "form-input w-40" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.color_label"),
+            tooltip: t("admin.resource_types.form.color_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.color_field :color, class: "form-input h-[38px] w-20 p-1" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.resource_types.form.sort_order_label"),
+            tooltip: t("admin.resource_types.form.sort_order_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.number_field :sort_order, class: "form-input w-24 text-right font-mono", min: 0 %>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="flex items-center justify-between">
+    <%= render(ButtonComponent.new(href: admin_resource_types_path, variant: :ghost)) { t("admin.resource_types.form.cancel_button") } %>
+    <%= render(ButtonComponent.new(type: "submit")) { @resource_type.new_record? ? t("admin.resource_types.form.create_button") : t("admin.resource_types.form.update_button") } %>
+  </div>
+<% end %>

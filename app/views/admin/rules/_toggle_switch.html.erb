@@ -1,0 +1,7 @@
+<%# A settings-style on/off switch for a boolean rule. The hidden "0" ensures an
+    off switch still submits a value the controller casts to false. %>
+<label class="relative inline-flex items-center cursor-pointer">
+  <%= hidden_field_tag "rules[#{stage}][#{key}]", "0" %>
+  <input type="checkbox" name="rules[<%= stage %>][<%= key %>]" value="1" <%= "checked" if checked %> class="peer sr-only">
+  <div class="w-9 h-5 rounded-full bg-[#D8D8D2] peer-checked:bg-sage peer-focus:ring-2 peer-focus:ring-sage/30 transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></div>
+</label>

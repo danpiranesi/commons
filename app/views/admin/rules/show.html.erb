@@ -1,0 +1,132 @@
+<%= render(PageHeaderComponent.new(title: t("rules.title"), subtitle: t("rules.subtitle"))) %>
+
+<%# Which resource type's rules are we editing — switching reloads the page. %>
+<div class="flex flex-wrap gap-2 mb-6">
+  <% @resource_types.each do |rt| %>
+    <% active = rt.id == @resource_type.id %>
+    <%= link_to admin_rules_path(resource_type_id: rt.id),
+          class: "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-colors #{active ? 'bg-sage text-white' : 'bg-white border border-card-border text-primary hover:bg-hover'}" do %>
+      <span class="<%= active ? 'text-white' : 'text-muted' %>"><%= resource_icon(rt.icon) %></span>
+      <%= rt.name %>
+    <% end %>
+  <% end %>
+</div>
+
+<%= form_with url: admin_rules_path, method: :patch, class: "space-y-6 max-w-2xl" do %>
+  <%= hidden_field_tag :resource_type_id, @resource_type.id %>
+
+  <%# ── Check-out ─────────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("rules.stages.checkout.label") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("rules.stages.checkout.hint") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("rules.checkout.buffer_label"),
+            description: t("rules.checkout.buffer_hint"), tooltip: t("rules.checkout.buffer_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <input type="number" name="rules[checkout][buffer_minutes]" min="0" max="180" step="5"
+                   value="<%= @rules.checkout_buffer_minutes %>" class="form-input w-24 text-right font-mono">
+            <span class="text-sm text-muted"><%= t("rules.minutes") %></span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.checkout.require_odometer_label"),
+            description: t("rules.checkout.require_odometer_hint"), tooltip: t("rules.checkout.require_odometer_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= render "admin/rules/toggle_switch", stage: "checkout", key: "require_odometer", checked: @rules.require_odometer? %>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── During ────────────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("rules.stages.during.label") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("rules.stages.during.hint") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("rules.during.allow_extension_label"),
+            description: t("rules.during.allow_extension_hint"), tooltip: t("rules.during.allow_extension_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= render "admin/rules/toggle_switch", stage: "during", key: "allow_extension", checked: @rules.allow_extension? %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.during.penalty_hours_label"),
+            description: t("rules.during.penalty_hours_hint"), tooltip: t("rules.during.penalty_hours_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <input type="number" name="rules[during][edit_shorten_penalty_hours]" min="0" max="24" step="1"
+                   value="<%= @rules.edit_shorten_penalty_hours %>" class="form-input w-24 text-right font-mono">
+            <span class="text-sm text-muted"><%= t("rules.during.penalty_hours_unit") %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Check-in ──────────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("rules.stages.checkin.label") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("rules.stages.checkin.hint") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("rules.checkin.buffer_label"),
+            description: t("rules.checkin.buffer_hint"), tooltip: t("rules.checkin.buffer_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <input type="number" name="rules[checkin][buffer_minutes]" min="0" max="180" step="5"
+                   value="<%= @rules.return_buffer_minutes %>" class="form-input w-24 text-right font-mono">
+            <span class="text-sm text-muted"><%= t("rules.minutes") %></span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.checkin.require_confirmation_label"),
+            description: t("rules.checkin.require_confirmation_hint"), tooltip: t("rules.checkin.require_confirmation_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= render "admin/rules/toggle_switch", stage: "checkin", key: "require_confirmation", checked: @rules.require_confirmation? %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.checkin.max_km_label"),
+            description: t("rules.checkin.max_km_hint"), tooltip: t("rules.checkin.max_km_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <input type="number" name="rules[checkin][max_km_per_trip]" min="1" step="1"
+                 value="<%= @rules.max_km_per_trip %>" class="form-input w-28 text-right font-mono">
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.checkin.grace_label"),
+            description: t("rules.checkin.grace_hint"), tooltip: t("rules.checkin.grace_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <input type="number" name="rules[checkin][grace_minutes]" min="0" max="29" step="1"
+                   value="<%= @rules.grace_minutes %>" class="form-input w-24 text-right font-mono">
+            <span class="text-sm text-muted"><%= t("rules.minutes") %></span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("rules.checkin.overdue_label"),
+            description: t("rules.checkin.overdue_hint"), tooltip: t("rules.checkin.overdue_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <input type="number" name="rules[checkin][overdue_after_minutes]" min="0" max="1440" step="5"
+                   value="<%= @rules.overdue_after_minutes %>" class="form-input w-24 text-right font-mono">
+            <span class="text-sm text-muted"><%= t("rules.checkin.overdue_unit") %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="flex items-center justify-end">
+    <%= render(ButtonComponent.new(variant: :primary, type: "submit")) { t("rules.save") } %>
+  </div>
+<% end %>

@@ -1,0 +1,47 @@
+<% content_for(:title, t("reservations.confirm.title")) %>
+
+<div class="max-w-md mx-auto px-4 py-8">
+  <%# Make it unmistakable that the trip has not ended yet; billing runs until it is confirmed. %>
+  <div class="mb-4 rounded-lg border-2 border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger" role="status">
+    <p class="font-semibold"><%= t("reservations.confirm.not_ended_title") %></p>
+    <p class="mt-0.5"><%= t("reservations.confirm.not_ended_hint") %></p>
+  </div>
+
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header do %>
+      <h1 class="text-base font-medium"><%= @resource.display_name %></h1>
+    <% end %>
+
+    <div class="text-center py-4">
+      <div class="text-sm text-muted"><%= t("reservations.confirm.you_drove") %></div>
+      <div class="text-4xl font-semibold my-1"><%= number_with_delimiter(@preview.meta[:km]) %> km</div>
+      <div class="text-xs text-muted">
+        <%= number_with_delimiter(@preview.meta[:start_odometer]) %> &rarr; <%= number_with_delimiter(@preview.meta[:ending_reading]) %>
+      </div>
+    </div>
+
+    <% unless @preview.amount.to_f.zero? %>
+      <div class="flex justify-between border-t border-card-border pt-3 text-sm">
+        <span class="text-muted"><%= t("reservations.confirm.amount") %></span>
+        <span class="font-medium"><%= number_to_currency(@preview.amount, unit: "", precision: 2) %> kr</span>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%= form_with url: reservation_completion_path, method: :post, data: { turbo: false }, class: "mt-5" do %>
+    <%= hidden_field_tag :token, @resource.qr_token %>
+    <%= hidden_field_tag :booking_id, @booking.id %>
+    <%= hidden_field_tag :ending_reading, @preview.meta[:ending_reading] %>
+    <%= hidden_field_tag :confirmed, "1" %>
+    <% if params[:end_without_check_in].present? %><%= hidden_field_tag :end_without_check_in, "1" %><% end %>
+    <% if @return_to.present? %><%= hidden_field_tag :return_to, @return_to %><% end %>
+    <%= render(ButtonComponent.new(variant: :stop, size: :lg, full_width: true, type: "submit")) do %>
+      <%= t("reservations.confirm.finish") %>
+    <% end %>
+  <% end %>
+
+  <div class="mt-3 text-center">
+    <%= link_to t("reservations.confirm.back"), (@return_to.presence || vehicle_scan_path(@resource.qr_token)),
+          class: "text-sm text-muted hover:text-primary" %>
+  </div>
+</div>

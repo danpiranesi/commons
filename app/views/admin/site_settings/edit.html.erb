@@ -1,0 +1,174 @@
+<%= render(PageHeaderComponent.new(title: t("admin.site_settings.title"), subtitle: t("admin.site_settings.subtitle"))) %>
+
+<%= form_with model: @site_setting, url: admin_homepage_header_path, method: :patch, class: "space-y-6 max-w-2xl" do |f| %>
+
+  <%# ── Homepage header ──────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.site_settings.card_title") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("admin.site_settings.subtitle") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.da_label"),
+            description: t("admin.site_settings.da_hint"), tooltip: t("admin.site_settings.da_tooltip"), stacked: true)) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_area :homepage_header_da, rows: 2, class: "form-textarea w-full", placeholder: t("admin.site_settings.placeholder") %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.en_label"),
+            description: t("admin.site_settings.en_hint"), tooltip: t("admin.site_settings.en_tooltip"), stacked: true)) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_area :homepage_header_en, rows: 2, class: "form-textarea w-full", placeholder: t("admin.site_settings.placeholder") %>
+        <% end %>
+      <% end %>
+
+      <% if SiteSetting.instance.homepage_header.present? %>
+        <div class="px-5 py-4">
+          <div class="text-[11px] font-medium text-muted uppercase tracking-wider mb-2"><%= t("admin.site_settings.preview_label") %></div>
+          <div class="bg-header text-header-text rounded-md px-5 py-3 text-center text-sm font-medium">
+            <%= SiteSetting.instance.homepage_header %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Booking ──────────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.site_settings.booking_section") %></h2>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.horizon.days_label"),
+            description: @site_setting.booking_horizon_date ? t("admin.site_settings.horizon.current", date: @site_setting.booking_horizon_date.strftime("%-d/%-m %Y")) : t("admin.site_settings.horizon.unlimited"),
+            tooltip: t("admin.site_settings.horizon.tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <%= f.number_field :booking_horizon_days, step: 1, min: 0, class: "form-input w-24 text-right font-mono" %>
+            <span class="text-sm text-muted whitespace-nowrap"><%= t("admin.site_settings.horizon.days_unit") %></span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.home_car_max.label"),
+            description: t("admin.site_settings.home_car_max.hint"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <%= f.number_field :home_car_max_hours, step: 1, min: 0, class: "form-input w-24 text-right font-mono" %>
+            <span class="text-sm text-muted whitespace-nowrap"><%= t("admin.site_settings.home_car_max.unit") %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Regnskab / eksport ───────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.site_settings.accounting.card_title") %></h2>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.accounting.finance_account_label"),
+            description: t("admin.site_settings.accounting.finance_account_hint"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_field :finance_account, class: "form-input w-32 text-right font-mono" %>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Car pricing ──────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.site_settings.minimum.card_title") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("admin.site_settings.minimum.hint") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.minimum.standard_label"),
+            tooltip: t("admin.site_settings.minimum.standard_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <%= f.number_field :car_minimum_price, step: "0.01", min: 0, class: "form-input w-24 text-right font-mono" %>
+            <span class="text-sm text-muted">kr</span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.minimum.home_label"),
+            tooltip: t("admin.site_settings.minimum.home_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <div class="flex items-center gap-2">
+            <%= f.number_field :home_car_minimum_price, step: "0.01", min: 0, class: "form-input w-24 text-right font-mono" %>
+            <span class="text-sm text-muted">kr</span>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.minimum.home_cars_label"),
+            description: t("admin.site_settings.minimum.home_cars_hint"), tooltip: t("admin.site_settings.minimum.home_cars_tooltip"), stacked: true)) do |row| %>
+        <% row.with_control do %>
+          <% if @cars.any? %>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+              <% @cars.each do |car| %>
+                <label class="flex items-center gap-2 text-sm py-1 cursor-pointer">
+                  <%= check_box_tag "home_car_ids[]", car.id, car.home_car?, class: "rounded border-card-border text-sage focus:ring-sage/30" %>
+                  <span class="truncate"><%= car.display_name %></span>
+                </label>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="text-sm text-muted"><%= t("admin.site_settings.minimum.no_cars") %></p>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <%# ── Destinations ─────────────────────────────────────────────── %>
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.site_settings.destinations.card_title") %></h2>
+      <p class="text-xs text-muted mt-0.5"><%= t("admin.site_settings.destinations.hint") %></p>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.site_settings.destinations.enabled_label"),
+            description: t("admin.site_settings.destinations.enabled_hint"))) do |row| %>
+        <% row.with_control do %>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <%= f.check_box :destinations_enabled, class: "rounded border-card-border text-sage focus:ring-sage/30" %>
+            <span class="text-sm text-muted"><%= t("admin.site_settings.destinations.enabled_toggle") %></span>
+          </label>
+        <% end %>
+      <% end %>
+    </div>
+
+    <%# The list itself is only worth editing while it's switched on. %>
+    <div class="p-5 <%= 'opacity-50' unless @site_setting.destinations_enabled? %>" data-controller="destinations-editor">
+      <div class="space-y-3" data-destinations-editor-target="groups">
+        <% @site_setting.destination_list.each do |group| %>
+          <%= render "admin/site_settings/destination_group", group: group["group"], cities: group["cities"] %>
+        <% end %>
+      </div>
+
+      <button type="button" data-action="destinations-editor#addGroup"
+              class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-sage hover:text-sage/80">
+        + <%= t("admin.site_settings.destinations.add_group") %>
+      </button>
+
+      <input type="hidden" name="site_setting[destinations_json]" data-destinations-editor-target="output">
+
+      <%# Templates cloned by the Stimulus controller for new groups / destinations. %>
+      <template data-destinations-editor-target="groupTemplate">
+        <%= render "admin/site_settings/destination_group", group: "", cities: [""] %>
+      </template>
+      <template data-destinations-editor-target="destinationTemplate">
+        <%= render "admin/site_settings/destination_row", city: "" %>
+      </template>
+    </div>
+  </section>
+
+  <div class="flex items-center justify-end">
+    <%= render(ButtonComponent.new(type: "submit")) { t("admin.site_settings.save") } %>
+  </div>
+<% end %>

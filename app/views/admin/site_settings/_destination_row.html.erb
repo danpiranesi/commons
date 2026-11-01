@@ -1,0 +1,24 @@
+<%# One destination input inside a group. No name attribute — the whole editor is
+    serialized to the hidden destinations_json field by the Stimulus controller. %>
+<div class="flex items-center gap-2" data-destinations-editor-target="city">
+  <input type="text" value="<%= city %>"
+         placeholder="<%= t('admin.site_settings.destinations.destination_placeholder') %>"
+         aria-label="<%= t('admin.site_settings.destinations.destination_placeholder') %>"
+         data-action="input->destinations-editor#serialize"
+         class="form-input flex-1">
+  <%# Order matters: it is the order members see. Up/down rather than drag, so
+      it works the same with a keyboard and on a phone. %>
+  <button type="button" data-action="destinations-editor#moveDestinationUp" class="inline-flex items-center justify-center w-9 h-11 text-muted hover:text-primary rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+          title="<%= t('admin.site_settings.destinations.move_up') %>" aria-label="<%= t('admin.site_settings.destinations.move_up') %>">
+    <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+  <button type="button" data-action="destinations-editor#moveDestinationDown" class="inline-flex items-center justify-center w-9 h-11 text-muted hover:text-primary rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+          title="<%= t('admin.site_settings.destinations.move_down') %>" aria-label="<%= t('admin.site_settings.destinations.move_down') %>">
+    <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+  <button type="button" data-action="destinations-editor#removeDestination"
+          class="inline-flex items-center justify-center w-11 h-11 text-muted hover:text-danger rounded-md shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage"
+          title="<%= t('admin.site_settings.destinations.remove') %>" aria-label="<%= t('admin.site_settings.destinations.remove') %>">
+    <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>

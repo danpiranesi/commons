@@ -1,0 +1,30 @@
+<%= render(PageHeaderComponent.new(
+      title: t("admin.resources.show.regenerate_confirm.title"),
+      subtitle: @resource.display_name,
+      breadcrumbs: [["Alle ressourcer", admin_resources_path], [@resource.display_name, admin_resource_path(@resource)], [t("admin.resources.show.regenerate_confirm.crumb"), nil]])) %>
+
+<div class="max-w-lg">
+  <%= render(CardComponent.new) do %>
+    <div class="flex items-start gap-3">
+      <span class="text-danger shrink-0 mt-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <div>
+        <p class="text-sm font-medium mb-2"><%= t("admin.resources.show.regenerate_confirm.warning_title") %></p>
+        <ul class="text-sm text-muted space-y-1.5 list-disc pl-4">
+          <li><%= t("admin.resources.show.regenerate_confirm.point_invalidate") %></li>
+          <li><%= t("admin.resources.show.regenerate_confirm.point_reprint") %></li>
+          <li><%= t("admin.resources.show.regenerate_confirm.point_when") %></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mt-6 pt-4 border-t border-card-border">
+      <%= button_to t("admin.resources.show.regenerate_confirm.confirm_button"),
+            regenerate_qr_admin_resource_path(@resource), method: :post,
+            class: "inline-flex items-center justify-center gap-2 rounded-md font-medium px-4 py-2 text-sm bg-danger/10 text-danger border border-danger/20 hover:bg-danger/15 cursor-pointer" %>
+      <%= link_to t("admin.resources.show.regenerate_confirm.cancel_button"), admin_resource_path(@resource),
+            class: "text-sm text-muted hover:text-primary" %>
+    </div>
+  <% end %>
+</div>

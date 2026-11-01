@@ -1,0 +1,274 @@
+<%= render "bookings/detail_header" %>
+
+<%# Cancelled banner %>
+<% if @booking.status == "cancelled" %>
+  <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20 mb-6">
+    <span class="font-medium"><%= t("bookings.show.cancelled") %></span>
+    <% if @booking.cancellation_reason.present? %>
+      — <%= @booking.cancellation_reason %>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2">
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-muted"><%= resource_icon(@resource.resource_type.icon) %></span>
+            <h3 class="text-sm font-medium"><%= booking_resource_title(@resource) %></h3>
+          </div>
+          <%= render(BadgeComponent.new(variant: booking_status_variant(@booking))) { @booking.status.humanize } %>
+        </div>
+      <% end %>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("bookings.show.booked_by") %></dt>
+          <dd><%= @booking.user.name %></dd>
+        </div>
+        <% if @booking_detail_template.show?("destination") && @booking.destination.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("bookings.show.destination_label") %></dt>
+            <dd><%= @booking.destination %></dd>
+          </div>
+        <% end %>
+        <% if @booking_detail_template.show?("rideshare") && @resource.tracks_mileage? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("bookings.show.rideshare_label") %></dt>
+            <dd>
+              <% if @booking.rideshare_available? %>
+                <span class="text-success"><%= t("bookings.show.rideshare_open") %></span>
+              <% else %>
+                <span class="text-muted"><%= t("bookings.show.rideshare_not_available") %></span>
+              <% end %>
+            </dd>
+          </div>
+        <% end %>
+        <% if @booking_detail_template.show?("duration") %>
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("bookings.show.duration_label") %></dt>
+          <dd><%= @booking.days %> <%= t("bookings.show.day", count: @booking.days) %></dd>
+        </div>
+        <% end %>
+        <div class="col-span-2">
+          <dt class="text-muted text-xs mb-1"><%= t("bookings.show.time_label") %></dt>
+          <dd class="flex items-center gap-2">
+            <span><%= @booking.start_at.strftime("%a %-d %b, %H:%M") %></span>
+            <span class="text-muted">→</span>
+            <span><%= @booking.end_at.strftime("%a %-d %b, %H:%M") %></span>
+          </dd>
+        </div>
+        <% if @booking_detail_template.show?("accessories") && @booking.accessories.any? %>
+          <div class="col-span-2">
+            <dt class="text-muted text-xs mb-1"><%= t("bookings.show.accessories_label") %></dt>
+            <dd class="flex flex-wrap gap-2">
+              <% @booking.accessories.includes(:resource_type).each do |acc| %>
+                <span class="inline-flex items-center gap-1 text-xs bg-hover rounded px-2 py-1">
+                  <%= resource_icon(acc.resource_type.icon) %>
+                  <%= acc.name %>
+                </span>
+              <% end %>
+            </dd>
+          </div>
+        <% end %>
+        <% if @booking_detail_template.show?("notes") && @booking.notes.present? %>
+          <div class="col-span-2">
+            <dt class="text-muted text-xs mb-1"><%= t("bookings.show.notes_label") %></dt>
+            <dd><%= @booking.notes %></dd>
+          </div>
+        <% end %>
+      </dl>
+    <% end %>
+  </div>
+
+  <div class="space-y-4">
+    <%# Receipt — shown for completed bookings in place of the estimate %>
+    <% if @booking.status == "returned" && @booking.total_amount && (@own_booking || admin?) %>
+      <% receipt_breakdown = PricingCalculator.new(@booking, start_odometer: @booking.start_mileage, ending_reading: @booking.end_mileage).breakdown %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium"><%= t("bookings.show.receipt_title") %></h3>
+            <%= render(BadgeComponent.new(variant: :success)) { t("bookings.show.receipt_paid_badge") } %>
+          </div>
+        <% end %>
+
+        <div class="text-sm space-y-1.5">
+          <div class="flex justify-between text-muted">
+            <span><%= t("bookings.show.receipt_completed_label") %></span>
+            <span><%= @booking.completed_at.strftime("%-d %b %Y, %H:%M") %></span>
+          </div>
+          <div class="flex justify-between text-muted">
+            <span><%= t("bookings.show.receipt_billed_hours") %></span>
+            <span><%= @booking.billed_hours %> t</span>
+          </div>
+          <% if @booking.km_driven %>
+            <div class="flex justify-between text-muted">
+              <span><%= t("bookings.show.receipt_km_driven") %></span>
+              <span><%= number_with_delimiter(@booking.km_driven) %> km</span>
+            </div>
+          <% end %>
+
+          <div class="border-t border-card-border pt-2 mt-2 space-y-1.5">
+            <% if receipt_breakdown.time_cost > 0 %>
+              <div class="flex justify-between">
+                <span class="text-muted"><%= t("bookings.show.receipt_time_cost") %></span>
+                <span><%= number_to_currency(receipt_breakdown.time_cost, unit: "", precision: 2) %> DKK</span>
+              </div>
+            <% end %>
+            <% if receipt_breakdown.km_cost > 0 %>
+              <div class="flex justify-between">
+                <span class="text-muted"><%= t("bookings.show.receipt_km_cost") %></span>
+                <span><%= number_to_currency(receipt_breakdown.km_cost, unit: "", precision: 2) %> DKK</span>
+              </div>
+            <% end %>
+            <% if receipt_breakdown.toll_cost > 0 %>
+              <div class="flex justify-between">
+                <span class="text-muted"><%= t("bookings.show.receipt_toll_cost") %></span>
+                <span><%= number_to_currency(receipt_breakdown.toll_cost, unit: "", precision: 2) %> DKK</span>
+              </div>
+            <% end %>
+            <% if receipt_breakdown.accessory_cost > 0 %>
+              <div class="flex justify-between">
+                <span class="text-muted"><%= t("bookings.show.receipt_accessory_cost") %></span>
+                <span><%= number_to_currency(receipt_breakdown.accessory_cost, unit: "", precision: 2) %> DKK</span>
+              </div>
+            <% end %>
+            <div class="flex justify-between font-medium border-t border-card-border pt-2">
+              <span><%= t("bookings.show.receipt_total") %></span>
+              <span><%= number_to_currency(@booking.total_amount, unit: "", precision: 2) %> DKK</span>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%# Cost card — only visible to booking owner or admin %>
+    <% if (@own_booking || admin?) && @booking_detail_template.show?("cost") %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("bookings.show.estimated_cost") %></h3>
+      <% end %>
+
+      <% if @price %>
+        <% time_cost = @price.calculate_time_cost(@booking.hours) %>
+        <div class="text-sm space-y-2">
+          <div class="flex justify-between">
+            <span class="text-muted">
+              <%= @booking.hours %> <%= t("bookings.show.hours_rate", rate: number_to_currency(@price.hour_rate, unit: "", precision: 0)) %>
+              <% if @price.day_rate > 0 && @booking.hours >= @price.day_cap_hours %>
+                <span class="text-[10px]"><%= t("bookings.show.day_cap") %></span>
+              <% end %>
+            </span>
+            <span><%= number_to_currency(time_cost, unit: "", precision: 0) %> DKK</span>
+          </div>
+          <% if @resource.tracks_mileage? && @price.km_rate > 0 %>
+            <div class="flex justify-between text-muted">
+              <span><%= t("bookings.show.km_driven_rate", rate: @price.km_rate) %></span>
+              <span class="italic"><%= t("bookings.show.on_return") %></span>
+            </div>
+          <% end %>
+          <% extras_total = 0 %>
+          <% @booking.booking_accessories.includes(accessory: [:resource_prices, :resource_type]).each do |ba| %>
+            <% acc = ba.accessory %>
+            <% acc_price = acc.price_for(@booking.user.user_type) %>
+            <% if acc.resource_type.name == "Toll" %>
+              <% cost = ba.quantity * (acc_price&.hour_rate || 0) %>
+              <% extras_total += cost %>
+              <% if cost > 0 %>
+                <div class="flex justify-between">
+                  <span class="text-muted truncate"><%= acc.name %> (<%= ba.quantity %>x)</span>
+                  <span class="shrink-0 ml-2"><%= number_to_currency(cost, unit: "", precision: 0) %> DKK</span>
+                </div>
+              <% end %>
+            <% else %>
+              <% cost = acc_price ? acc_price.calculate_time_cost(@booking.hours) : 0 %>
+              <% extras_total += cost %>
+              <%
+                if acc_price && acc_price.hour_rate > 0
+                  acc_label = "#{acc.name} (#{@booking.hours} hrs x #{acc_price.hour_rate.to_i} DKK)"
+                elsif acc_price && acc_price.day_rate > 0
+                  acc_days = (@booking.hours / 24.0).ceil
+                  acc_days = 1 if acc_days == 0
+                  acc_label = "#{acc.name} (#{acc_days} #{t("bookings.show.day", count: acc_days)} x #{acc_price.day_rate.to_i} DKK)"
+                else
+                  acc_label = acc.name
+                end
+              %>
+              <div class="flex justify-between">
+                <span class="text-muted truncate"><%= acc_label %></span>
+                <span class="shrink-0 ml-2"><%= number_to_currency(cost, unit: "", precision: 0) %> DKK</span>
+              </div>
+            <% end %>
+          <% end %>
+          <div class="border-t border-card-border pt-2 flex justify-between font-medium">
+            <span><%= t("bookings.show.estimated") %></span>
+            <span><%= number_to_currency(time_cost + extras_total, unit: "", precision: 0) %> DKK</span>
+          </div>
+
+          <% car_min = car_minimum_for(@resource, @booking.effective_billing_category) %>
+          <% if car_min %>
+            <div class="flex justify-between text-xs text-muted border-t border-card-border pt-2">
+              <span><%= t("bookings.show.minimum_label") %></span>
+              <span class="font-medium"><%= number_to_currency(car_min, unit: "", precision: 0) %> DKK</span>
+            </div>
+            <p class="text-[10px] text-muted"><%= t("bookings.show.minimum_note") %></p>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+    <% end %>
+
+    <%# Adjust end time (admin) — for a trip that is out or booked, when the
+        agreed return time changes. %>
+    <% if admin? && @booking.open? %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("bookings.show.adjust_end_card_title") %></h3>
+        <% end %>
+
+        <%= form_with url: adjust_end_booking_path(@booking), method: :patch, class: "space-y-3", data: { turbo: false } do %>
+          <p class="text-xs text-muted"><%= t("bookings.show.adjust_end_hint") %></p>
+          <%= render "bookings/time_picker", prefix: "booking_end", value: @booking.end_at %>
+          <%= render(ButtonComponent.new(variant: :secondary, size: :sm, full_width: true, type: "submit")) { t("bookings.show.adjust_end_button") } %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%# End booking (admin) — force-complete one that wasn't returned via QR. The
+        service handles the not-checked-in case, so this works even if the trip was
+        never started at the vehicle. %>
+    <% if admin? && %w[active awaiting_return].include?(@booking.status) %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("bookings.show.end_card_title") %></h3>
+        <% end %>
+
+        <%= form_with url: complete_booking_path(@booking), method: :patch, class: "space-y-3", data: { turbo: false } do %>
+          <p class="text-xs text-muted"><%= t("bookings.show.end_warning") %></p>
+
+          <% if @resource.tracks_mileage? %>
+            <div>
+              <label class="block text-xs text-muted mb-1"><%= t("bookings.show.end_mileage_label") %></label>
+              <input type="number" name="ending_reading" required step="1"
+                     min="<%= @resource.current_odometer || @booking.start_mileage %>"
+                     value="<%= @resource.current_odometer %>" class="form-input">
+              <% if @resource.current_odometer %>
+                <p class="text-[11px] text-muted mt-1"><%= t("bookings.show.end_mileage_hint", km: number_with_delimiter(@resource.current_odometer)) %></p>
+              <% end %>
+            </div>
+            <label class="flex items-center gap-2 text-xs text-muted">
+              <input type="checkbox" name="allow_high_delta" value="1" class="rounded border-card-border">
+              <%= t("bookings.show.end_allow_high_delta") %>
+            </label>
+          <% end %>
+
+          <%= render(ButtonComponent.new(variant: :primary, size: :sm, full_width: true, type: "submit", data: { turbo_confirm: t("bookings.show.end_confirm") })) { t("bookings.show.end_button") } %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+  </div>
+</div>

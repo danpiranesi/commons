@@ -1,0 +1,203 @@
+<%= render(PageHeaderComponent.new(
+  title: t("admin.monthly_overview.show.title"),
+  subtitle: ClosedBillingMonth.label_for(@billing_month)
+)) do |header| %>
+  <% header.with_actions do %>
+    <div class="flex items-center gap-2">
+      <%# Month picker %>
+      <% if @available_months.any? %>
+        <select onchange="window.location = '<%= admin_monthly_overview_path %>?billing_month=' + this.value"
+                class="form-select text-sm py-1.5">
+          <% @available_months.each do |m| %>
+            <option value="<%= m %>" <%= "selected" if m == @billing_month %>>
+              <%= ClosedBillingMonth.label_for(m) %>
+              <%= ClosedBillingMonth.closed?(m) ? "🔒" : "" %>
+            </option>
+          <% end %>
+        </select>
+      <% end %>
+
+      <% if @closed %>
+        <%= render(BadgeComponent.new(variant: :default)) { t("admin.monthly_overview.show.closed_badge") } %>
+      <% else %>
+        <%= button_to t("admin.monthly_overview.show.close_month_button"),
+              close_month_admin_monthly_overview_path(billing_month: @billing_month),
+              method: :post, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border border-danger/30 text-danger hover:bg-danger/5 transition-colors",
+              data: { turbo_confirm: t("admin.monthly_overview.show.close_month_confirm",
+                                      month: ClosedBillingMonth.label_for(@billing_month)) } %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @available_months.empty? %>
+  <%= render(EmptyStateComponent.new(
+    title: t("admin.monthly_overview.show.empty_title"),
+    description: t("admin.monthly_overview.show.empty_description_no_data")
+  )) %>
+<% else %>
+
+<%# ── Monthly summary sheet download ─────────────────────────── %>
+<div class="mb-6 rounded-lg border border-card-border bg-white shadow-sm px-5 py-4">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h3 class="text-sm font-medium inline-flex items-center"><%= t("admin.monthly_overview.show.summary_title") %><%= render(InfoTooltipComponent.new(text: t("admin.monthly_overview.show.summary_tooltip"))) %></h3>
+      <p class="text-xs text-muted mt-0.5">
+        <%= t("admin.monthly_overview.show.summary_hint", month: ClosedBillingMonth.label_for(@billing_month)) %>
+      </p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <%= link_to export_summary_admin_monthly_overview_path(billing_month: @billing_month),
+            class: "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium bg-[#E8E6E0] text-primary hover:bg-[#DDDBD5] transition-colors no-underline" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <%= t("admin.monthly_overview.show.summary_cars") %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# ── Summary totals ─────────────────────────────────────────── %>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+  <%# Per-user table %>
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header do %>
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-medium"><%= t("admin.monthly_overview.show.user_totals_title") %></h3>
+        <div class="flex gap-2">
+          <%= link_to t("admin.monthly_overview.show.export_cars"),
+                export_csv_admin_monthly_overview_path(billing_month: @billing_month, type: "biler"),
+                class: "text-xs text-sage hover:text-sage/80 font-medium" %>
+          <%= link_to t("admin.monthly_overview.show.export_bikes"),
+                export_csv_admin_monthly_overview_path(billing_month: @billing_month, type: "cykler"),
+                class: "text-xs text-sage hover:text-sage/80 font-medium" %>
+        </div>
+      </div>
+    <% end %>
+
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs text-muted border-b border-card-border">
+          <th class="pb-2 font-medium"><%= t("admin.monthly_overview.show.col_member") %></th>
+          <th class="pb-2 font-medium text-right"><%= t("admin.monthly_overview.show.col_km") %></th>
+          <th class="pb-2 font-medium text-right"><%= t("admin.monthly_overview.show.col_amount") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @user_totals.each do |row| %>
+          <tr class="border-b border-card-border last:border-0">
+            <td class="py-2">
+              <div class="font-medium"><%= row[:user].name %></div>
+              <% unless row[:user].accounting_account.present? %>
+                <div class="text-xs text-danger"><%= t("admin.monthly_overview.show.missing_account") %></div>
+              <% end %>
+            </td>
+            <td class="py-2 text-right font-mono text-xs"><%= number_with_delimiter(row[:km]) %></td>
+            <td class="py-2 text-right font-mono"><%= number_with_delimiter(row[:total], delimiter: ".", separator: ",") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr class="border-t-2 border-card-border font-medium">
+          <td class="pt-2"><%= t("admin.monthly_overview.show.total_row") %></td>
+          <td class="pt-2 text-right font-mono text-xs"><%= number_with_delimiter(@user_totals.sum { |r| r[:km] }) %></td>
+          <td class="pt-2 text-right font-mono"><%= number_with_delimiter(@user_totals.sum { |r| r[:total] }, delimiter: ".", separator: ",") %></td>
+        </tr>
+      </tfoot>
+    </table>
+  <% end %>
+
+  <%# Per-vehicle table %>
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header { t("admin.monthly_overview.show.vehicle_totals_title") } %>
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs text-muted border-b border-card-border">
+          <th class="pb-2 font-medium"><%= t("admin.monthly_overview.show.col_vehicle") %></th>
+          <th class="pb-2 font-medium text-right"><%= t("admin.monthly_overview.show.col_km") %></th>
+          <th class="pb-2 font-medium text-right"><%= t("admin.monthly_overview.show.col_amount") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @vehicle_totals.each do |row| %>
+          <tr class="border-b border-card-border last:border-0">
+            <td class="py-2">
+              <div class="font-medium"><%= row[:resource].display_name %></div>
+              <div class="text-xs text-muted"><%= row[:count] %> <%= t("admin.monthly_overview.show.trips") %></div>
+            </td>
+            <td class="py-2 text-right font-mono text-xs"><%= number_with_delimiter(row[:km]) %></td>
+            <td class="py-2 text-right font-mono"><%= number_with_delimiter(row[:total], delimiter: ".", separator: ",") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr class="border-t-2 border-card-border font-medium">
+          <td class="pt-2"><%= t("admin.monthly_overview.show.total_row") %></td>
+          <td class="pt-2 text-right font-mono text-xs"><%= number_with_delimiter(@vehicle_totals.sum { |r| r[:km] }) %></td>
+          <td class="pt-2 text-right font-mono"><%= number_with_delimiter(@vehicle_totals.sum { |r| r[:total] }, delimiter: ".", separator: ",") %></td>
+        </tr>
+      </tfoot>
+    </table>
+  <% end %>
+</div>
+
+<%# Trips made on behalf of a work or interest group: the group's own account
+    for the month, kept apart from the members who drove them. %>
+<% if @group_totals.any? %>
+  <div class="mb-6">
+    <h2 class="text-sm font-medium mb-2"><%= t("admin.monthly_overview.show.group_totals_title") %></h2>
+    <div class="bg-white rounded-lg border border-card-border shadow-sm divide-y divide-card-border">
+      <% @group_totals.each do |row| %>
+        <details class="group">
+          <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-hover/40 list-none [&::-webkit-details-marker]:hidden">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted shrink-0 transition-transform group-open:rotate-90"><polyline points="9 18 15 12 9 6"/></svg>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium truncate"><%= row[:group].name %></div>
+              <div class="text-xs text-muted"><%= row[:group].billing_category.name_da %> · <%= row[:count] %> <%= t("admin.monthly_overview.show.trips") %> · <%= number_with_delimiter(row[:km]) %> km</div>
+            </div>
+            <div class="text-right font-mono text-sm shrink-0">
+              <%= number_with_delimiter(row[:total], delimiter: ".", separator: ",") %> kr
+            </div>
+          </summary>
+          <%= render "admin/monthly_overview/trip_table", bookings: @bookings_by_group[row[:group].id], show_driver: true %>
+        </details>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%# ── Booking detail ─────────────────────────────────────────── %>
+<%# One collapsed row per member, so the month stays scannable; click a name to see their trips. %>
+<div data-controller="details-group">
+  <div class="flex items-center justify-between mb-2">
+    <h2 class="text-sm font-medium"><%= t("admin.monthly_overview.show.trips_by_member_title") %></h2>
+    <div class="flex gap-3 text-xs">
+      <button type="button" class="text-sage hover:text-sage/80 font-medium" data-action="details-group#expand"><%= t("admin.monthly_overview.show.expand_all") %></button>
+      <button type="button" class="text-sage hover:text-sage/80 font-medium" data-action="details-group#collapse"><%= t("admin.monthly_overview.show.collapse_all") %></button>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg border border-card-border shadow-sm divide-y divide-card-border">
+  <% @bookings_by_user.each do |user, user_bookings| %>
+    <details class="group" data-details-group-target="item">
+      <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-hover/40 list-none [&::-webkit-details-marker]:hidden">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted shrink-0 transition-transform group-open:rotate-90"><polyline points="9 18 15 12 9 6"/></svg>
+        <div class="w-7 h-7 rounded-full bg-[#E8E6E0] flex items-center justify-center text-xs font-medium text-primary shrink-0">
+          <%= user.name.to_s.first&.upcase %>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-medium truncate"><%= user.name %></div>
+          <div class="text-xs text-muted"><%= user_bookings.size %> <%= t("admin.monthly_overview.show.booking_count", count: user_bookings.size) %></div>
+        </div>
+        <div class="text-right font-mono text-sm shrink-0">
+          <%= number_with_delimiter(user_bookings.sum { |b| b.total_amount || 0 }, delimiter: ".", separator: ",") %> kr
+        </div>
+      </summary>
+
+      <%= render "admin/monthly_overview/trip_table", bookings: user_bookings %>
+    </details>
+  <% end %>
+  </div>
+</div>
+
+<% end %>

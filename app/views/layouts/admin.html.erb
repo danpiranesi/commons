@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <title><%= content_for(:title) || t("layouts.admin.title") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="admin-theme min-h-screen flex flex-col bg-bg text-primary font-sans">
+    <header class="bg-header text-header-text shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+      <div class="max-w-[1200px] mx-auto px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <a href="/" class="flex items-center gap-2 no-underline text-header-text">
+            <img src="/logo.svg" alt="Commons" class="h-7 w-auto object-contain">
+            <span class="text-lg font-medium">Commons</span>
+          </a>
+          <span class="text-header-text/50">|</span>
+          <span class="text-sm font-medium text-header-text/80"><%= t("layouts.admin.badge") %></span>
+        </div>
+
+        <div class="flex items-center gap-3 text-header-text">
+          <%# See the system as a member sees it. The banner in the member layout
+              brings the admin back. %>
+          <%= button_to t("member_preview.start_button"), member_preview_path, method: :post,
+                class: "text-sm px-3 py-1 rounded-md border border-header-text/40 text-header-text hover:bg-header-text/10",
+                title: t("member_preview.start_hint") %>
+          <a href="<%= edit_settings_path %>" class="text-sm text-header-text hover:text-white no-underline"><%= current_user.name %></a>
+          <%= button_to t("header.logout"), logout_path, method: :delete, class: "text-sm text-header-text/70 hover:text-header-text" %>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex-1 flex">
+      <nav class="w-56 bg-white border-r border-card-border py-4 shrink-0">
+        <% admin_sections.each do |section| %>
+          <%= admin_section_link(section) %>
+        <% end %>
+
+        <div class="mt-6 pt-3 border-t border-card-border">
+          <%= admin_nav_link t("admin.nav.back_to_site"), root_path, icon: "arrow-left" %>
+        </div>
+      </nav>
+
+      <main class="flex-1 p-6 max-w-[960px]">
+        <%= render(FlashComponent.new(flash: flash)) %>
+        <%= render "admin/section_tabs" %>
+        <%= yield %>
+      </main>
+    </div>
+  </body>
+</html>

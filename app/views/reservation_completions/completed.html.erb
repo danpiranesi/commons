@@ -1,0 +1,77 @@
+<% content_for(:title, t("reservations.completed.title")) %>
+<%# On-screen receipt shown when a trip is closed; mirrors the emailed receipt's lines. %>
+<% breakdown = @booking.charge_breakdown_struct %>
+<% rate = @booking.billing_rate_struct %>
+
+<div class="max-w-md mx-auto px-4 py-10">
+  <div class="text-center">
+    <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-success text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <h1 class="text-3xl font-medium mb-2 text-success"><%= t("reservations.completed.title") %></h1>
+    <p class="text-sm text-muted"><%= t("reservations.completed.thanks", resource: @resource.display_name) %></p>
+  </div>
+
+  <div class="mt-8 rounded-lg border border-success/30 bg-white shadow-sm overflow-hidden text-sm">
+    <div class="bg-success/10 px-4 py-2.5 flex items-center justify-between">
+      <span class="font-medium text-success"><%= t("reservations.completed.receipt") %></span>
+      <span class="text-xs text-muted"><%= @booking.completed_at.strftime("%-d/%-m %Y, %H:%M") %></span>
+    </div>
+
+    <div class="divide-y divide-card-border">
+      <div class="flex justify-between gap-4 px-4 py-2.5">
+        <span class="text-muted"><%= t("reservations.completed.time") %></span>
+        <span class="text-right">
+          <%= @booking.start_at.strftime("%-d/%-m %H:%M") %> &ndash; <%= @booking.billed_until_time.strftime("%H:%M") %>
+          (<%= number_with_precision(@booking.billed_hours, precision: 1, strip_insignificant_zeros: true) %> t)
+        </span>
+      </div>
+      <% if @booking.km_driven %>
+        <div class="flex justify-between gap-4 px-4 py-2.5">
+          <span class="text-muted"><%= t("reservations.completed.distance") %></span>
+          <span><%= number_with_delimiter(@booking.km_driven) %> km
+            <span class="text-xs text-muted">(<%= number_with_delimiter(@booking.start_mileage) %> &rarr; <%= number_with_delimiter(@booking.end_mileage) %>)</span>
+          </span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if breakdown %>
+      <div class="border-t border-card-border px-4 py-2.5 space-y-1.5">
+        <% [[:time_cost, "time_cost"], [:km_cost, "km_cost"], [:toll_cost, "toll_cost"], [:accessory_cost, "accessory_cost"]].each do |attr, key| %>
+          <% amount = breakdown.public_send(attr) %>
+          <% next unless amount.positive? %>
+          <div class="flex justify-between">
+            <span class="text-muted"><%= t("reservations.completed.#{key}") %></span>
+            <span class="tabular-nums"><%= number_to_currency(amount, unit: "", precision: 2) %> kr</span>
+          </div>
+        <% end %>
+        <% if rate&.per_km? %>
+          <div class="flex justify-between text-xs text-muted">
+            <span><%= t("reservations.completed.state_rate") %></span>
+            <span><%= rate.km %> km &times; <%= number_to_currency(rate.value, unit: "", precision: 2) %> kr</span>
+          </div>
+        <% elsif rate&.multiplier? && rate.value.to_f != 1.0 %>
+          <div class="flex justify-between text-xs text-muted">
+            <span><%= t("reservations.completed.rate") %></span>
+            <span>&times;<%= rate.value.to_f %><% if rate.category_name %> (<%= rate.category_name %>)<% end %></span>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="border-t-2 border-success/30 bg-success/10 px-4 py-3 flex justify-between text-base">
+      <span class="font-medium"><%= t("reservations.completed.amount") %></span>
+      <span class="font-semibold tabular-nums"><%= number_to_currency(@result.amount, unit: "", precision: 2) %> kr</span>
+    </div>
+  </div>
+
+  <p class="mt-4 text-center text-xs text-muted">
+    <% if @booking.on_behalf_of_group? %>
+      <%= t("reservations.completed.paid_by_group", group: @booking.billing_group.name) %>
+    <% else %>
+      <%= t("reservations.completed.paid_by_you") %>
+    <% end %>
+    <% if @booking.user.wants_receipt? %><%= t("reservations.completed.emailed") %><% end %>
+  </p>
+</div>

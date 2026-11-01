@@ -1,0 +1,10 @@
+<label class="flex items-start gap-3 cursor-pointer">
+  <%# hidden "0" so an unchecked box still submits a value the controller casts to false %>
+  <%= hidden_field_tag "rules[#{stage}][#{key}]", "0" %>
+  <input type="checkbox" name="rules[<%= stage %>][<%= key %>]" value="1" <%= "checked" if checked %>
+         class="mt-0.5 h-4 w-4 rounded border-card-border text-sage focus:ring-sage">
+  <span>
+    <span class="block text-sm font-medium"><%= label %></span>
+    <span class="block text-xs text-muted"><%= hint %></span>
+  </span>
+</label>

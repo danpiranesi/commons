@@ -1,0 +1,7 @@
+<%= render(FormFieldComponent.new(label: label, hint: hint)) do %>
+  <div class="flex items-center gap-2">
+    <input type="number" name="rules[<%= stage %>][buffer_minutes]" min="0" max="180" step="5"
+           value="<%= value %>" class="form-input w-24">
+    <span class="text-sm text-muted"><%= t("rules.minutes") %></span>
+  </div>
+<% end %>

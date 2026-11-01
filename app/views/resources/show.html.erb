@@ -1,0 +1,296 @@
+<% card_title = ResourceCardTemplate.new(@resource).title.presence || @resource.name %>
+<%= render(PageHeaderComponent.new(title: card_title, subtitle: @resource.resource_type.name, breadcrumbs: [["Calendar", root_path], [card_title, nil]])) do |header| %>
+  <% if @resource.bookable? %>
+    <% header.with_actions do %>
+      <%= render(ButtonComponent.new(href: new_booking_path(resource_id: @resource.id, date: Date.current), variant: :primary, size: :md)) { t("resources.show.book_button") } %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+    <%# Details card %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <div class="flex items-center gap-3">
+          <span class="text-muted"><%= resource_icon(@resource.resource_type.icon) %></span>
+          <h3 class="text-sm font-medium"><%= t("resources.show.details_card_title") %></h3>
+        </div>
+      <% end %>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <% if @detail_template.show?("status") %>
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("resources.show.status_label") %></dt>
+          <dd>
+            <% variant = case @resource.status
+                 when "active" then :success
+                 when "unavailable" then :warning
+                 when "retired" then :default
+                 else :default
+               end %>
+            <%= render(BadgeComponent.new(variant: variant)) { @resource.status.capitalize } %>
+            <% if @resource.recharging? %>
+              <span class="text-xs text-amber-600 ml-1"><%= t("resources.show.recharging_until", time: @resource.recharge_until.strftime('%H:%M')) %></span>
+            <% end %>
+            <% if @resource.unavailable? && @resource.unavailable_reason.present? %>
+              <div class="text-xs text-muted mt-1"><%= @resource.unavailable_reason %></div>
+            <% end %>
+          </dd>
+        </div>
+        <% end %>
+
+        <div>
+          <dt class="text-muted text-xs mb-1"><%= t("resources.show.type_label") %></dt>
+          <dd>
+            <%= @resource.resource_type.name %>
+            <% if @resource.electric? %>
+              <span class="text-xs"><%= t("resources.show.electric") %></span>
+            <% end %>
+          </dd>
+        </div>
+
+        <% if @detail_template.show?("vehicle") && (@resource.make.present? || @resource.color.present?) %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("resources.show.vehicle_label") %></dt>
+            <dd><%= [@resource.color, @resource.make].compact_blank.join(" ") %></dd>
+          </div>
+        <% end %>
+
+        <% if @detail_template.show?("license_number") && @resource.license_number.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("resources.show.license_number_label") %></dt>
+            <dd><%= @resource.license_number %></dd>
+          </div>
+        <% end %>
+
+        <% if @detail_template.show?("location") && @resource.location.present? %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("resources.show.location_label") %></dt>
+            <dd><%= @resource.location %></dd>
+          </div>
+        <% end %>
+
+        <% if @detail_template.show?("description") && @resource.description.present? %>
+          <div class="col-span-2">
+            <dt class="text-muted text-xs mb-1"><%= t("resources.show.description_label") %></dt>
+            <dd><%= @resource.description %></dd>
+          </div>
+        <% end %>
+
+        <% if @detail_template.show?("damage_notes") && @resource.damage_notes.present? %>
+          <div class="col-span-2">
+            <dt class="text-danger text-xs mb-1"><%= t("resources.show.damage_report_label") %></dt>
+            <dd class="text-danger text-sm bg-danger/5 rounded px-3 py-2 border border-danger/10"><%= @resource.damage_notes %></dd>
+          </div>
+        <% end %>
+
+        <% if @resource.tracks_mileage? && @detail_template.show?("regular_driver") %>
+          <div>
+            <dt class="text-muted text-xs mb-1"><%= t("resources.show.regular_driver_label") %></dt>
+            <dd>
+              <% if admin? %>
+                <%= form_with url: resource_path(@resource), method: :patch, class: "flex items-center gap-2" do %>
+                  <input type="text" name="resource[regular_driver]" value="<%= @resource.regular_driver %>" class="form-input py-1 text-sm" placeholder="<%= t("resources.show.not_set") %>">
+                  <button type="submit" class="text-sage hover:text-sage/80 p-1 shrink-0" title="Save">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </button>
+                <% end %>
+              <% else %>
+                <%= @resource.regular_driver.presence || "—" %>
+              <% end %>
+            </dd>
+          </div>
+
+          <% if @resource.resource_stat && @detail_template.show?("mileage") %>
+            <div>
+              <dt class="text-muted text-xs mb-1"><%= t("resources.show.current_mileage_label") %></dt>
+              <dd><%= number_with_delimiter(@resource.resource_stat.mileage) %> km</dd>
+            </div>
+          <% end %>
+        <% end %>
+      </dl>
+    <% end %>
+
+    <%# Accessories — for vehicles %>
+    <% if @resource.tracks_mileage? && @accessories.any? && @detail_template.show?("accessories") %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("resources.show.compatible_accessories_title") %></h3>
+        <% end %>
+
+        <div class="divide-y divide-card-border">
+          <% @accessories.each do |accessory| %>
+            <%= link_to resource_path(accessory), class: "flex items-center justify-between py-3 first:pt-0 last:pb-0 hover:bg-hover/30 -mx-5 px-5 transition-colors" do %>
+              <div class="flex items-center gap-3">
+                <span class="text-muted"><%= resource_icon(accessory.resource_type.icon) %></span>
+                <div>
+                  <div class="text-sm font-medium"><%= accessory.name %></div>
+                  <div class="text-xs text-muted"><%= accessory.resource_type.name %></div>
+                </div>
+              </div>
+              <div class="text-right">
+                <% if accessory.unavailable? %>
+                  <%= render(BadgeComponent.new(variant: :warning)) { t("resources.show.unavailable") } %>
+                <% else %>
+                  <% acc_price = accessory.price_for(current_user.user_type) %>
+                  <% if acc_price && acc_price.day_rate > 0 %>
+                    <div class="text-xs text-muted"><%= number_to_currency(acc_price.day_rate, unit: "", precision: 0) %> DKK/day</div>
+                  <% else %>
+                    <%= render(BadgeComponent.new(variant: :success)) { t("resources.show.free") } %>
+                  <% end %>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%# Compatible vehicles — for accessories %>
+    <% if @compatible_with&.any? %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("resources.show.compatible_vehicles_title") %></h3>
+        <% end %>
+
+        <div class="divide-y divide-card-border">
+          <% @compatible_with.each do |vehicle| %>
+            <%= link_to resource_path(vehicle), class: "flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-hover/30 -mx-5 px-5 transition-colors" do %>
+              <span class="text-muted"><%= resource_icon(vehicle.resource_type.icon) %></span>
+              <div>
+                <div class="text-sm font-medium"><%= vehicle.name %></div>
+                <div class="text-xs text-muted"><%= vehicle.resource_type.name %></div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%# Previous trip — who had the car last, how far they drove (charge context),
+        and how to reach them. Vehicles only. %>
+    <% if @resource.tracks_mileage? %>
+      <% previous_trip = @resource.previous_booking %>
+      <% if previous_trip %>
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header do %>
+            <h3 class="text-sm font-medium"><%= t("neighbour.previous_label") %></h3>
+          <% end %>
+          <div class="text-sm font-medium"><%= previous_trip.user.name %></div>
+          <div class="text-xs text-muted mt-0.5">
+            <% if previous_trip.status == "returned" %>
+              <% if previous_trip.km_driven %><span class="text-primary font-medium"><%= number_with_delimiter(previous_trip.km_driven) %> km</span><% end %>
+              <% if previous_trip.destination.present? %><span> · → <%= previous_trip.destination %></span><% end %>
+              <div><%= t("neighbour.returned_at", time: previous_trip.completed_at&.strftime("%a %-d %b, %H:%M")) %></div>
+            <% else %>
+              <span><%= t("neighbour.in_use_now") %></span>
+              <% if previous_trip.destination.present? %><span> · → <%= previous_trip.destination %></span><% end %>
+            <% end %>
+          </div>
+          <% unless previous_trip.user == current_user %>
+            <%= render "shared/contact_actions", user: previous_trip.user, resource: @resource %>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%# Future reservations %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("resources.show.upcoming_reservations_title") %></h3>
+      <% end %>
+
+      <% if @future_bookings.any? %>
+        <div class="divide-y divide-card-border">
+          <% @future_bookings.each do |booking| %>
+            <div class="py-3 first:pt-0 last:pb-0">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-medium"><%= booking.user.name %></div>
+                  <div class="text-xs text-muted">
+                    <%= booking.start_at.strftime("%a %-d %b, %H:%M") %> → <%= booking.end_at.strftime("%a %-d %b, %H:%M") %>
+                  </div>
+                </div>
+                <% if booking.start_at <= Time.current %>
+                  <%= render(BadgeComponent.new(variant: :sage)) { t("resources.show.in_use") } %>
+                <% end %>
+              </div>
+              <% if @resource.tracks_mileage? && booking.user != current_user %>
+                <%= render "shared/contact_actions", user: booking.user, resource: @resource %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-muted"><%= t("resources.show.no_upcoming_reservations") %></p>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Pricing sidebar %>
+  <div>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("resources.show.your_rates_title") %></h3>
+      <% end %>
+
+      <% if @price %>
+        <dl class="text-sm space-y-3">
+          <div class="flex justify-between">
+            <dt class="text-muted"><%= t("resources.show.per_hour") %></dt>
+            <dd><%= number_to_currency(@price.hour_rate, unit: "", precision: 0) %> DKK</dd>
+          </div>
+          <% if @price.day_rate > 0 %>
+            <div class="flex justify-between">
+              <dt class="text-muted"><%= t("resources.show.day_cap", hours: @price.day_cap_hours) %></dt>
+              <dd><%= number_to_currency(@price.day_rate, unit: "", precision: 0) %> DKK</dd>
+            </div>
+          <% end %>
+          <% if @resource.tracks_mileage? && @price.km_rate > 0 %>
+            <div class="flex justify-between">
+              <dt class="text-muted"><%= t("resources.show.km_rate") %></dt>
+              <dd><%= @price.km_rate %> DKK/km</dd>
+            </div>
+          <% end %>
+          <% if @price.min_charge > 0 %>
+            <div class="flex justify-between">
+              <dt class="text-muted"><%= t("resources.show.min_charge") %></dt>
+              <dd><%= number_to_currency(@price.min_charge, unit: "", precision: 0) %> DKK</dd>
+            </div>
+          <% end %>
+        </dl>
+        <p class="text-[10px] text-muted mt-3"><%= t("resources.show.rates_for") %><strong><%= current_user.user_type %></strong></p>
+      <% else %>
+        <p class="text-sm text-muted"><%= t("resources.show.no_pricing") %></p>
+      <% end %>
+    <% end %>
+
+    <%# Pricing rules %>
+    <% rules = @resource.pricing_rules.order(:min_days) %>
+    <% if rules.any? %>
+      <div class="mt-4">
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header do %>
+            <h3 class="text-sm font-medium"><%= t("resources.show.discounts_title") %></h3>
+          <% end %>
+
+          <div class="text-sm space-y-2">
+            <% rules.each do |rule| %>
+              <div class="flex items-center justify-between">
+                <span class="text-muted">
+                  <% if rule.min_days && rule.max_days %>
+                    <%= t("resources.show.discount_days_range", min: rule.min_days, max: rule.max_days) %>
+                  <% elsif rule.min_days %>
+                    <%= t("resources.show.discount_days_min", min: rule.min_days) %>
+                  <% end %>
+                </span>
+                <span><%= rule.description || "x#{rule.multiplier}" %></span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

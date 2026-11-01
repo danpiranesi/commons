@@ -1,0 +1,12 @@
+<%# Horizontal tab bar for the pages within the active admin section. Rendered
+    by the admin layout; only shows when the section has more than one page. %>
+<% section = active_admin_section %>
+<% if section && section[:tabs].length > 1 %>
+  <nav class="flex items-center gap-1 border-b border-card-border mb-6 -mt-1">
+    <% section[:tabs].each do |tab| %>
+      <% active = admin_tab_active?(tab) %>
+      <%= link_to tab[:label], tab[:path],
+            class: "px-3 py-2 text-sm no-underline border-b-2 -mb-px transition-colors #{active ? 'border-sage text-sage font-medium' : 'border-transparent text-muted hover:text-primary'}" %>
+    <% end %>
+  </nav>
+<% end %>

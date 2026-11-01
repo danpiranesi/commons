@@ -1,0 +1,86 @@
+<%# Wraps the whole list so the "Print labels" button in the header can submit
+    checkboxes from every resource-type table at once. %>
+<%= form_with url: new_admin_label_sheet_path, method: :get, data: { controller: "label-select", turbo: false } do %>
+<%= render(PageHeaderComponent.new(title: t("admin.resources.index.title"), subtitle: "#{t("admin.resources.index.resources_count", count: Resource.count)} across #{ResourceType.count} types")) do |header| %>
+  <% header.with_actions do %>
+    <button type="submit" data-label-select-target="submit" disabled
+            class="inline-flex items-center justify-center gap-2 rounded-md font-medium px-4 py-2 text-sm bg-white text-primary border border-card-border hover:bg-hover cursor-pointer disabled:opacity-40 disabled:pointer-events-none">
+      <%= t("admin.labels.print_button") %>
+      <span data-label-select-target="count" class="text-muted">0</span>
+    </button>
+    <%= render(ButtonComponent.new(href: new_admin_resource_path, size: :md)) { t("admin.resources.index.new_button") } %>
+  <% end %>
+<% end %>
+
+<% @resource_types.each do |rt| %>
+  <div class="mb-8">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-muted"><%= resource_icon(rt.icon) %></span>
+      <h2 class="text-base font-medium"><%= rt.name %></h2>
+      <%= render(BadgeComponent.new(variant: :default)) { billing_type_label(rt.billing_type) } %>
+      <span class="text-xs text-muted"><%= t("admin.resources.index.resources_count", count: rt.resources.size) %></span>
+    </div>
+
+    <% if rt.resources.any? %>
+      <div class="bg-white rounded-lg border border-card-border shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-card-border text-left text-xs text-muted uppercase tracking-wider">
+              <th class="pl-4 py-3 w-8">
+                <input type="checkbox" title="<%= t("admin.labels.select_all") %>"
+                       data-action="change->label-select#toggleAll"
+                       class="rounded border-card-border cursor-pointer">
+              </th>
+              <th class="px-4 py-3 font-medium"><%= t("admin.resources.index.col_name") %></th>
+              <th class="px-4 py-3 font-medium"><%= t("admin.resources.index.col_status") %></th>
+              <th class="px-4 py-3 font-medium"><%= t("admin.resources.index.col_rate") %></th>
+              <th class="px-4 py-3 font-medium w-20"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rt.resources.sort_by(&:name).each do |resource| %>
+              <tr class="border-b border-card-border last:border-0 hover:bg-hover/50">
+                <td class="pl-4 py-3">
+                  <% if resource.qr_token.present? %>
+                    <input type="checkbox" name="resource_ids[]" value="<%= resource.id %>" id="<%= dom_id(resource, :label) %>"
+                           data-label-select-target="checkbox" data-action="change->label-select#update"
+                           class="rounded border-card-border cursor-pointer">
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= render(ResourceCardComponent.new(resource: resource, size: :default, lines: 2, electric_indicator: resource.electric?)) %>
+                </td>
+                <td class="px-4 py-3">
+                  <%= render(BadgeComponent.new(variant: status_variant(resource.status))) { resource.status.capitalize } %>
+                  <% if resource.unavailable? && resource.unavailable_until %>
+                    <div class="text-xs text-muted mt-1"><%= t("admin.resources.index.unavailable_until", date: resource.unavailable_until.strftime("%-d %b")) %></div>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3">
+                  <% if (price = resource.resource_prices.find { |p| p.user_type == "resident" }) %>
+                    <% if price.hour_rate > 0 %>
+                      <span><%= number_to_currency(price.hour_rate, unit: "", precision: 0) %> DKK/hr</span>
+                      <% if price.km_rate > 0 %>
+                        <span class="text-xs text-muted">+ <%= price.km_rate %>/km</span>
+                      <% end %>
+                    <% elsif price.day_rate > 0 %>
+                      <span><%= number_to_currency(price.day_rate, unit: "", precision: 0) %> DKK/day</span>
+                    <% end %>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <%= link_to admin_resource_path(resource), class: "text-sage hover:text-sage/80 text-xs font-medium" do %>
+                    <%= t("admin.resources.index.view_link") %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <%= render(EmptyStateComponent.new(title: t("admin.resources.index.empty_title", type: rt.name.downcase.pluralize), description: t("admin.resources.index.empty_description", type: rt.name.downcase))) %>
+    <% end %>
+  </div>
+<% end %>
+<% end %><%# label-select form %>

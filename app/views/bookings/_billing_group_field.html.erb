@@ -1,0 +1,21 @@
+<%# "On behalf of": which work or interest group the trip is charged to.
+    The group already on the booking is always among the options, so editing
+    never silently clears a charge the editor cannot re-select. %>
+<% groups = current_user.bookable_billing_groups.includes(:billing_category).to_a %>
+<% current = f.object.billing_group %>
+<% groups = (groups + [current]).uniq if current && groups.exclude?(current) %>
+
+<% if groups.any? %>
+  <%= render(FormFieldComponent.new(
+        label: t("bookings.form.on_behalf_of_label"),
+        hint:  t("bookings.form.on_behalf_of_hint"))) do %>
+    <%= f.select :billing_group_id,
+          grouped_options_for_select(
+            groups.group_by { |g| g.billing_category.name_da }.transform_values { |gs|
+              gs.map { |g| [g.billing_category.per_km? ? "#{g.name} (#{g.billing_category.rate_value.to_f} kr/km)" : "#{g.name} (×#{g.billing_category.rate_value.to_f})", g.id] }
+            },
+            f.object.billing_group_id),
+          { include_blank: t("bookings.form.on_behalf_of_myself") },
+          class: "form-select", data: { action: "change->booking-form#updatePreview" } %>
+  <% end %>
+<% end %>

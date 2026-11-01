@@ -1,0 +1,8 @@
+<%# A selected field inside a slot. The hidden input is what actually posts;
+    the JS builds an identical node when a field is added client-side. %>
+<span class="chip inline-flex items-center gap-1.5 rounded-full bg-[#E8E6E0] pl-3 pr-1.5 py-1 text-xs" data-field="<%= fkey %>">
+  <input type="hidden" name="template[<%= slot %>][fields][]" value="<%= fkey %>">
+  <span><%= t("design.fields.#{fkey}") %></span>
+  <button type="button" data-action="design-editor#removeField"
+          class="flex h-4 w-4 items-center justify-center rounded-full text-muted hover:bg-black/10 hover:text-primary leading-none">&times;</button>
+</span>

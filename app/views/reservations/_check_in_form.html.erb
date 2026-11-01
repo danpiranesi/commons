@@ -1,0 +1,36 @@
+<%# START-of-trip check-in. The odometer is pre-filled with the last recorded
+    reading and shown read-only: the driver just taps Confirm if it's right, or
+    Edit to correct it. Same token-scoped POST model as the completion form. %>
+<%= form_with url: reservation_check_in_path, method: :post,
+      data: { turbo: false, controller: "check-in" }, class: "space-y-4" do %>
+  <%= hidden_field_tag :token, resource.qr_token %>
+  <%= hidden_field_tag :booking_id, booking.id %>
+  <% if local_assigns[:return_to].present? %><%= hidden_field_tag :return_to, return_to %><% end %>
+
+  <p class="text-sm text-muted"><%= t("reservations.check_in.intro") %></p>
+
+  <%= render(FormFieldComponent.new(label: t("reservations.check_in.odometer_label"))) do %>
+    <%# Read-only by default; the Edit button unlocks it via the check-in controller. %>
+    <input type="number" name="starting_reading" inputmode="numeric"
+           min="<%= resource.current_odometer %>" step="1" required readonly
+           data-check-in-target="input"
+           class="form-input w-full text-center text-4xl font-medium tracking-wide py-4 bg-hover cursor-default"
+           value="<%= resource.current_odometer %>">
+    <p class="text-xs text-muted mt-2 text-center" data-check-in-target="confirmHint">
+      <%= t("reservations.check_in.confirm_hint") %>
+    </p>
+    <p class="text-xs text-muted mt-2 text-center hidden" data-check-in-target="editHint">
+      <%= t("reservations.check_in.edit_hint") %>
+    </p>
+  <% end %>
+
+  <div class="flex items-center gap-3">
+    <button type="button" data-check-in-target="editButton" data-action="check-in#edit"
+            class="px-4 py-3 rounded-md border border-card-border bg-white text-primary text-sm font-medium hover:bg-hover transition-colors shrink-0">
+      <%= t("reservations.check_in.edit_button") %>
+    </button>
+    <%= render(ButtonComponent.new(variant: :go, size: :lg, full_width: true, type: "submit")) do %>
+      <%= t("reservations.check_in.button") %>
+    <% end %>
+  </div>
+<% end %>

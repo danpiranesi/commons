@@ -1,0 +1,176 @@
+<%= render(PageHeaderComponent.new(
+  title: t("admin.bookings.edit.title"),
+  subtitle: "#{@booking.resource.display_name} — #{@booking.user.name}",
+  breadcrumbs: [
+    [t("admin.monthly_overview.show.title"), admin_monthly_overview_path],
+    [t("admin.bookings.edit.title"), nil]
+  ]
+)) %>
+
+<% if @error %>
+  <div class="mb-6 p-4 rounded-lg bg-danger/10 border border-danger/20 text-sm text-danger">
+    <%= t("admin.bookings.errors.#{@error}", default: @error.to_s.humanize) %>
+  </div>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <%# Summary card %>
+  <div class="lg:col-span-2 space-y-6">
+
+    <%# Booking summary %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header { t("admin.bookings.edit.summary_title") } %>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.user_label") %></dt>
+          <dd class="font-medium"><%= @booking.user.name %></dd>
+          <% if @booking.on_behalf_of_group? %>
+            <dd class="text-xs text-sage-text mt-0.5">&#128176; <%= t("admin.monthly_overview.show.on_behalf_of", group: @booking.billing_group.name) %></dd>
+          <% end %>
+        </div>
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.resource_label") %></dt>
+          <dd class="font-medium"><%= @booking.resource.display_name %></dd>
+        </div>
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.start_label") %></dt>
+          <dd><%= @booking.start_at.strftime("%-d %b %Y %H:%M") %></dd>
+        </div>
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.end_label") %></dt>
+          <dd><%= @booking.completed_at&.strftime("%-d %b %Y %H:%M") || @booking.end_at.strftime("%-d %b %Y %H:%M") %></dd>
+        </div>
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.billed_hours_label") %></dt>
+          <dd><%= @booking.billed_hours %> t</dd>
+        </div>
+        <div>
+          <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.current_total_label") %></dt>
+          <dd class="font-medium"><%= number_to_currency(@booking.total_amount, unit: "", precision: 2) %> DKK</dd>
+        </div>
+        <% if @booking.resource.tracks_mileage? %>
+          <div>
+            <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.start_km_label") %></dt>
+            <dd class="font-mono"><%= number_with_delimiter(@booking.start_mileage) %></dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.end_km_label") %></dt>
+            <dd class="font-mono"><%= number_with_delimiter(@booking.end_mileage) %></dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted mb-0.5"><%= t("admin.bookings.edit.km_driven_label") %></dt>
+            <dd class="font-mono"><%= number_with_delimiter(@booking.km_driven) %> km</dd>
+          </div>
+        <% end %>
+      </dl>
+    <% end %>
+
+    <%# Who pays. Moving a trip refunds the current payer and re-prices it for
+        the new one (their prices and rate) — see ReservationTransferService. %>
+    <%= form_with url: admin_booking_path(@booking), method: :patch do %>
+      <%= hidden_field_tag :transfer, "1" %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header { t("admin.bookings.edit.transfer_title") } %>
+        <p class="text-sm text-muted mb-4"><%= t("admin.bookings.edit.transfer_hint") %></p>
+        <div class="space-y-4">
+          <%= render "bookings/admin_user_picker", user: @booking.user,
+                     title: t("admin.bookings.edit.transfer_member_title"), hint: t("admin.bookings.edit.transfer_member_hint") %>
+          <div>
+            <label class="block text-xs text-muted mb-1" for="billing_group_id"><%= t("admin.bookings.edit.transfer_group_label") %></label>
+            <% groups = BillingGroup.active.ordered.includes(:billing_category).to_a %>
+            <% groups = (groups + [@booking.billing_group]).uniq if @booking.billing_group && groups.exclude?(@booking.billing_group) %>
+            <%= select_tag :billing_group_id,
+                  options_for_select(groups.map { |g| ["#{g.name} (#{g.billing_category.name_da})", g.id] }, @booking.billing_group_id),
+                  include_blank: t("admin.bookings.edit.transfer_no_group"), class: "form-select" %>
+          </div>
+          <div class="flex justify-end">
+            <%= render(ButtonComponent.new(variant: :primary, size: :md, type: "submit",
+                  data: { turbo_confirm: t("admin.bookings.edit.transfer_confirm") })) { t("admin.bookings.edit.transfer_button") } %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%# Correction form %>
+    <%= form_with url: admin_booking_path(@booking), method: :patch do |f| %>
+      <%# The actual return time. A trip closed a day late by the next driver's
+          scan bills every hour in between; setting the time it really came back
+          re-prices it and posts the difference. %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header { t("admin.bookings.edit.return_time_title") } %>
+        <p class="text-sm text-muted mb-4"><%= t("admin.bookings.edit.return_time_hint") %></p>
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-muted mb-1" for="booking_completed_at"><%= t("admin.bookings.edit.return_time_label") %></label>
+            <input type="datetime-local" id="booking_completed_at"
+                   name="booking[completed_at]"
+                   value="<%= @booking.completed_at&.strftime("%Y-%m-%dT%H:%M") %>"
+                   min="<%= @booking.start_at.strftime("%Y-%m-%dT%H:%M") %>"
+                   class="form-input">
+            <p class="text-xs text-muted mt-1">
+              <%= t("admin.bookings.edit.return_time_booked", time: @booking.end_at.strftime("%-d %b %Y %H:%M")) %>
+            </p>
+          </div>
+          <%= render(ButtonComponent.new(variant: :primary, size: :md, type: "submit")) { t("admin.bookings.edit.save_return_time_button") } %>
+        </div>
+      <% end %>
+
+      <% if @booking.resource.tracks_mileage? %>
+        <%= render(CardComponent.new) do |card| %>
+          <% card.with_header { t("admin.bookings.edit.mileage_correction_title") } %>
+          <p class="text-sm text-muted mb-4"><%= t("admin.bookings.edit.mileage_correction_hint") %></p>
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[8rem]">
+              <label class="block text-xs text-muted mb-1" for="booking_start_mileage"><%= t("admin.bookings.edit.new_start_km_label") %></label>
+              <input type="number" id="booking_start_mileage"
+                     name="booking[start_mileage]"
+                     value="<%= @booking.start_mileage %>"
+                     min="0"
+                     class="form-input font-mono"
+                     inputmode="numeric">
+            </div>
+            <div class="flex-1 min-w-[8rem]">
+              <label class="block text-xs text-muted mb-1" for="booking_end_mileage"><%= t("admin.bookings.edit.new_end_km_label") %></label>
+              <input type="number" id="booking_end_mileage"
+                     name="booking[end_mileage]"
+                     value="<%= @booking.end_mileage %>"
+                     min="0"
+                     class="form-input font-mono"
+                     inputmode="numeric">
+            </div>
+            <%= render(ButtonComponent.new(variant: :primary, size: :md, type: "submit")) { t("admin.bookings.edit.save_mileage_button") } %>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header { t("admin.bookings.edit.billing_month_title") } %>
+        <p class="text-sm text-muted mb-4"><%= t("admin.bookings.edit.billing_month_hint") %></p>
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-xs text-muted mb-1"><%= t("admin.bookings.edit.billing_month_label") %></label>
+            <select name="booking[billing_month]" class="form-input">
+              <% (-3..1).each do |offset| %>
+                <% month = Date.current.beginning_of_month + offset.months %>
+                <% value = month.strftime("%Y%m") %>
+                <option value="<%= value %>" <%= "selected" if @booking.billing_month == value %>>
+                  <%= I18n.l(month, format: "%B %Y") %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+          <%= render(ButtonComponent.new(variant: :secondary, size: :md, type: "submit")) { t("admin.bookings.edit.save_month_button") } %>
+        </div>
+      <% end %>
+    <% end %>
+
+  </div>
+
+  <%# Sidebar: back link %>
+  <div class="space-y-4">
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header { t("admin.bookings.edit.actions_title") } %>
+      <%= render(ButtonComponent.new(href: admin_monthly_overview_path, variant: :secondary, size: :sm, full_width: true)) { t("admin.bookings.edit.back_button") } %>
+    <% end %>
+  </div>
+</div>

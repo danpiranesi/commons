@@ -1,0 +1,43 @@
+<h2>Rettet kvittering</h2>
+
+<p style="background: #FBF3E0; border: 1px solid #E8D9A8; padding: 8px 12px; border-radius: 4px;">
+  Dette er en <strong>rettelse</strong> af en tidligere reservation — ikke en ny opkrævning.
+</p>
+
+<table cellpadding="4" style="border-collapse: collapse;">
+  <tr><td><strong>Ressource</strong></td><td><%= @resource.display_name %></td></tr>
+  <tr>
+    <td><strong>Periode</strong></td>
+    <td><%= @booking.start_at.strftime("%d.%m.%Y %H:%M") %> &ndash; <%= @period_end.strftime("%d.%m.%Y %H:%M") %></td>
+  </tr>
+  <% if @returned_off_booking %>
+    <tr>
+      <td><strong>Booket</strong></td>
+      <td><%= @booking.start_at.strftime("%d.%m.%Y %H:%M") %> &ndash; <%= @booking.end_at.strftime("%d.%m.%Y %H:%M") %></td>
+    </tr>
+  <% end %>
+  <% if @booking.end_mileage.present? && @booking.start_mileage.present? %>
+    <tr>
+      <td><strong>Kilometer</strong></td>
+      <td><%= @booking.km_driven %> km (<%= @booking.start_mileage %> &rarr; <%= @booking.end_mileage %>)</td>
+    </tr>
+  <% end %>
+</table>
+
+<table cellpadding="4" style="border-collapse: collapse; margin-top: 12px;">
+  <tr><td>Tid (<%= number_with_precision(@booking.billed_hours, precision: 1, separator: ",", strip_insignificant_zeros: true) %> t)</td><td align="right"><%= number_to_currency(@breakdown.time_cost, unit: "", precision: 2) %> DKK</td></tr>
+  <% if @breakdown.km_cost > 0 %>
+    <tr><td>Kilometer</td><td align="right"><%= number_to_currency(@breakdown.km_cost, unit: "", precision: 2) %> DKK</td></tr>
+  <% end %>
+  <% if @breakdown.toll_cost > 0 %>
+    <tr><td>Broafgift</td><td align="right"><%= number_to_currency(@breakdown.toll_cost, unit: "", precision: 2) %> DKK</td></tr>
+  <% end %>
+  <% if @breakdown.accessory_cost > 0 %>
+    <tr><td>Tilbehør</td><td align="right"><%= number_to_currency(@breakdown.accessory_cost, unit: "", precision: 2) %> DKK</td></tr>
+  <% end %>
+  <tr style="border-top: 1px solid #ccc; font-weight: bold;">
+    <td>Rettet i alt</td><td align="right"><%= number_to_currency(@amount, unit: "", precision: 2) %> DKK</td>
+  </tr>
+</table>
+
+<p style="margin-top: 12px;">Din Commons-konto er justeret med forskellen.</p>

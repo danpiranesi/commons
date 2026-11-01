@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <title><%= content_for(:title) || t("layouts.application.title") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Commons">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-screen flex flex-col bg-bg text-primary font-sans"
+        <% if kiosk_mode? && logged_in? %>data-controller="idle" data-idle-timeout-value="300000" data-idle-logout-value="true"<% end %>>
+    <%# Shown only to an admin previewing the member view. Deliberately loud,
+        since nothing else on the page reveals they are an admin. %>
+    <% if current_user&.previewing_as_member %>
+      <div class="bg-admin text-white" role="status">
+        <div class="max-w-[1100px] mx-auto px-8 py-2 flex items-center justify-between gap-4 text-sm">
+          <span><%= t("member_preview.banner") %></span>
+          <%= button_to t("member_preview.stop_button"), member_preview_path, method: :delete,
+                class: "shrink-0 px-3 py-1 rounded-md bg-white/15 hover:bg-white/25 font-medium" %>
+        </div>
+      </div>
+    <% end %>
+
+    <header class="bg-header text-header-text shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+      <div class="max-w-[1100px] mx-auto px-8 py-4 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3 no-underline text-header-text">
+          <img src="/logo.svg" alt="Commons logo" class="h-8 max-w-[80px] w-auto object-contain">
+          <span class="text-xl font-medium text-header-text"><%= t("layouts.application.brand") %></span>
+        </a>
+
+        <% if logged_in? %>
+          <div class="flex items-center gap-3 text-header-text">
+            <% if admin? %>
+              <%= link_to t("header.admin"), admin_resources_path, class: "hidden sm:inline text-sm text-header-text/70 hover:text-header-text" %>
+            <% end %>
+            <a href="<%= edit_settings_path %>" class="flex items-center gap-2 text-header-text hover:text-white no-underline">
+              <span class="text-sm"><%= current_user.name %></span>
+              <div class="w-8 h-8 rounded-full bg-[#B0B8A8] flex items-center justify-center text-sm font-medium text-white">
+                <%= current_user.name.first.upcase %>
+              </div>
+            </a>
+          </div>
+        <% end %>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <div class="max-w-[1100px] mx-auto px-8 py-8">
+        <%= render(FlashComponent.new(flash: flash)) %>
+        <%= yield %>
+      </div>
+    </main>
+
+    <footer class="bg-header text-header-text">
+      <div class="max-w-[1100px] mx-auto px-8 py-6 text-center text-sm">
+        <%= t("layouts.application.footer") %>
+      </div>
+    </footer>
+  </body>
+</html>

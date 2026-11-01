@@ -1,0 +1,42 @@
+<% content_for :title, t("kiosk.title") %>
+
+<div data-controller="idle"
+     data-idle-timeout-value="300000"
+     data-idle-url-value="<%= schedule_path %>"
+     class="max-w-md mx-auto px-4 py-8">
+  <%= render(FlashComponent.new(flash: flash)) %>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-medium"><%= t("kiosk.title") %></h1>
+    <p class="text-sm text-muted mt-1"><%= t("kiosk.subtitle") %></p>
+  </div>
+
+  <%# Step 1 — enter the last 4 digits of your phone %>
+  <%= form_with url: kiosk_path, method: :get, data: { turbo: false }, class: "flex items-end gap-2 mb-6" do %>
+    <div class="flex-1">
+      <%= render(FormFieldComponent.new(label: t("kiosk.phone_label"), hint: t("kiosk.phone_hint"))) do %>
+        <input type="text" name="phone" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+               value="<%= @digits %>" autofocus autocomplete="off"
+               class="form-input w-full text-center text-2xl tracking-[0.4em]" placeholder="0000">
+      <% end %>
+    </div>
+    <%= render(ButtonComponent.new(variant: :primary, type: "submit")) { t("kiosk.find") } %>
+  <% end %>
+
+  <%# Step 2 — pick the reservation and end it %>
+  <% if @searched %>
+    <% if @bookings.any? %>
+      <div class="space-y-4">
+        <% @bookings.each do |booking| %>
+          <%= render(ReservationStatusComponent.new(resource: booking.resource, booking: booking, context: :kiosk)) do |status| %>
+            <% status.with_actions do %>
+              <%= render "reservations/trip_actions", resource: booking.resource, booking: booking, return_to: kiosk_path %>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render(EmptyStateComponent.new(title: t("kiosk.none_title"), description: t("kiosk.none_description"))) %>
+    <% end %>
+  <% end %>
+</div>

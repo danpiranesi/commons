@@ -1,0 +1,52 @@
+<%= form_with model: [:admin, @group], data: { turbo: false }, class: "space-y-6 max-w-2xl" do |f| %>
+  <% if @group.errors.any? %>
+    <div class="rounded-md bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+      <%= @group.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <section class="bg-white rounded-lg border border-card-border shadow-sm">
+    <div class="px-5 py-4 border-b border-card-border">
+      <h2 class="text-sm font-medium"><%= t("admin.billing_groups.form_title") %></h2>
+    </div>
+    <div class="divide-y divide-card-border">
+      <%= render(SettingRowComponent.new(label: t("admin.billing_groups.name_label"),
+            tooltip: t("admin.billing_groups.name_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_field :name, class: "form-input w-56", placeholder: "f.eks. Værksted" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.billing_groups.code_label"),
+            description: t("admin.billing_groups.code_hint"), tooltip: t("admin.billing_groups.code_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.text_field :code, class: "form-input w-56 font-mono", placeholder: "f.eks. VAERKSTED" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.billing_groups.category_label"),
+            description: t("admin.billing_groups.category_hint"), tooltip: t("admin.billing_groups.category_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <%= f.collection_select :billing_category_id, BillingCategory.ordered, :id,
+                ->(c) { c.per_km? ? "#{c.name_da} (#{c.rate_value.to_f} kr/km)" : "#{c.name_da} (×#{c.rate_value.to_f})" },
+                { prompt: t("admin.billing_groups.category_prompt") }, class: "form-select w-64" %>
+        <% end %>
+      <% end %>
+
+      <%= render(SettingRowComponent.new(label: t("admin.billing_groups.active_label"),
+            tooltip: t("admin.billing_groups.active_tooltip"))) do |row| %>
+        <% row.with_control do %>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <%= f.check_box :active, class: "peer sr-only" %>
+            <div class="w-9 h-5 rounded-full bg-[#D8D8D2] peer-checked:bg-sage peer-focus:ring-2 peer-focus:ring-sage/30 transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></div>
+          </label>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="flex items-center gap-3">
+    <%= render(ButtonComponent.new(variant: :primary, type: "submit")) { t("admin.billing_groups.save") } %>
+    <%= link_to t("admin.billing_groups.cancel"), admin_billing_groups_path, class: "text-sm text-muted hover:text-primary" %>
+  </div>
+<% end %>

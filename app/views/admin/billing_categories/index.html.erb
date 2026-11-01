@@ -1,0 +1,102 @@
+<%= render(PageHeaderComponent.new(
+      title: t("admin.billing_categories.title"),
+      subtitle: t("admin.billing_categories.subtitle"))) %>
+
+<%= form_with url: update_all_admin_billing_categories_path, method: :patch, data: { turbo: false } do %>
+  <div class="max-w-3xl space-y-6">
+    <% @categories.group_by(&:section).sort.each do |section, categories| %>
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <h3 class="text-sm font-medium"><%= t("admin.billing_categories.section_#{section}") %></h3>
+        <% end %>
+
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs text-muted border-b border-card-border">
+              <th class="pb-2 font-medium"><%= t("admin.billing_categories.col_category") %></th>
+              <th class="pb-2 font-medium"><span class="inline-flex items-center"><%= t("admin.billing_categories.col_rule") %><%= render(InfoTooltipComponent.new(text: t("admin.billing_categories.col_rule_tooltip"))) %></span></th>
+              <th class="pb-2 font-medium text-right w-32"><span class="inline-flex items-center"><%= t("admin.billing_categories.col_rate") %><%= render(InfoTooltipComponent.new(text: t("admin.billing_categories.col_rate_tooltip"))) %></span></th>
+              <th class="pb-2 font-medium text-right"><span class="inline-flex items-center justify-end"><%= t("admin.billing_categories.col_collection") %><%= render(InfoTooltipComponent.new(text: t("admin.billing_categories.col_collection_tooltip"))) %></span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% categories.each do |category| %>
+              <tr class="border-b border-card-border last:border-0">
+                <td class="py-2.5">
+                  <div class="font-medium"><%= category.name_da %></div>
+                  <div class="text-xs text-muted font-mono"><%= category.key %></div>
+                </td>
+                <td class="py-2.5 text-xs text-muted">
+                  <%= t("admin.billing_categories.mode_#{category.rate_mode}") %>
+                </td>
+                <td class="py-2.5 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <input type="number" step="0.01" min="0"
+                           name="rates[<%= category.id %>]"
+                           value="<%= category.rate_value.to_f %>"
+                           class="form-input w-24 text-right font-mono py-1.5">
+                    <span class="text-xs text-muted w-12 text-left">
+                      <%= category.per_km? ? t("admin.billing_categories.unit_km") : "×" %>
+                    </span>
+                  </div>
+                </td>
+                <td class="py-2.5 text-right">
+                  <select name="collection[<%= category.id %>]" class="form-select text-xs py-1.5">
+                    <% BillingCategory::COLLECTIONS.each do |c| %>
+                      <option value="<%= c %>" <%= "selected" if category.collection == c %>>
+                        <%= t("admin.billing_categories.collection_#{c}") %>
+                      </option>
+                    <% end %>
+                  </select>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    <% end %>
+
+    <%# ── Default hourly rates ─────────────────────────────────── %>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("admin.billing_categories.defaults_title") %></h3>
+      <% end %>
+      <p class="text-sm text-muted mb-4"><%= t("admin.billing_categories.defaults_hint") %></p>
+
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-muted border-b border-card-border">
+            <th class="pb-2 font-medium"><span class="inline-flex items-center"><%= t("admin.billing_categories.col_resource_type") %><%= render(InfoTooltipComponent.new(text: t("admin.billing_categories.col_resource_type_tooltip"))) %></span></th>
+            <% User::USER_TYPES.each do |ut| %>
+              <th class="pb-2 font-medium text-right"><%= t("admin.users.edit.user_type_options.#{ut}", default: ut.capitalize) %></th>
+            <% end %>
+          </tr>
+        </thead>
+        <tbody>
+          <% @resource_types.each do |type| %>
+            <tr class="border-b border-card-border last:border-0">
+              <td class="py-2.5 font-medium"><%= type.name %></td>
+              <% User::USER_TYPES.each do |ut| %>
+                <td class="py-2.5 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <input type="number" step="0.01" min="0"
+                           name="default_rates[<%= type.id %>][<%= ut %>]"
+                           value="<%= type.default_hour_rate_for(ut)&.to_f %>"
+                           class="form-input w-24 text-right font-mono py-1.5">
+                    <span class="text-xs text-muted w-10 text-left"><%= t("admin.billing_categories.per_hour") %></span>
+                  </div>
+                </td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <p class="text-[11px] text-muted mt-3"><%= t("admin.billing_categories.defaults_override_note") %></p>
+    <% end %>
+
+    <div class="flex items-center gap-3">
+      <%= render(ButtonComponent.new(variant: :primary, type: "submit")) { t("admin.billing_categories.save") } %>
+      <p class="text-xs text-muted"><%= t("admin.billing_categories.save_hint") %></p>
+    </div>
+  </div>
+<% end %>

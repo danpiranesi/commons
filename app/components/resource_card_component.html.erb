@@ -1,0 +1,11 @@
+<div class="min-w-0">
+  <div class="flex items-center gap-1 <%= title_class %>">
+    <span class="truncate" title="<%= title %>"><%= title %></span>
+    <% if show_electric? %>
+      <span class="text-[10px] text-sage" title="<%= t("design.fields.electric") %>">&#9889;</span>
+    <% end %>
+  </div>
+  <% subtitles.each do |line| %>
+    <div class="<%= subtitle_class %>"><%= line %></div>
+  <% end %>
+</div>

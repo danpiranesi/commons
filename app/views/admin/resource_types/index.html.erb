@@ -1,0 +1,37 @@
+<%= render(PageHeaderComponent.new(title: t("admin.resource_types.index.title"), subtitle: t("admin.resource_types.index.subtitle"))) do |header| %>
+  <% header.with_actions do %>
+    <%= render(ButtonComponent.new(href: new_admin_resource_type_path, size: :md)) { t("admin.resource_types.index.new_button") } %>
+  <% end %>
+<% end %>
+
+<div class="bg-white rounded-lg border border-card-border shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-card-border text-left text-xs text-muted uppercase tracking-wider">
+        <th class="px-4 py-3 font-medium"><%= t("admin.resource_types.index.col_name") %></th>
+        <th class="px-4 py-3 font-medium normal-case"><span class="inline-flex items-center uppercase tracking-wider"><%= t("admin.resource_types.index.col_billing") %></span><%= render(InfoTooltipComponent.new(text: t("admin.resource_types.index.col_billing_tooltip"))) %></th>
+        <th class="px-4 py-3 font-medium"><%= t("admin.resource_types.index.col_resources") %></th>
+        <th class="px-4 py-3 font-medium"><%= t("admin.resource_types.index.col_sort_order") %></th>
+        <th class="px-4 py-3 font-medium w-20"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @resource_types.each do |rt| %>
+        <tr class="border-b border-card-border last:border-0 hover:bg-hover/50">
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <span class="text-muted"><%= resource_icon(rt.icon) %></span>
+              <span class="font-medium"><%= rt.name %></span>
+            </div>
+          </td>
+          <td class="px-4 py-3"><%= render(BadgeComponent.new(variant: :sage)) { billing_type_label(rt.billing_type) } %></td>
+          <td class="px-4 py-3"><%= rt.resources.size %></td>
+          <td class="px-4 py-3"><%= rt.sort_order %></td>
+          <td class="px-4 py-3 text-right">
+            <%= link_to t("admin.resource_types.index.edit_link"), edit_admin_resource_type_path(rt), class: "text-sage hover:text-sage/80 text-xs font-medium" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

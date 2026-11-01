@@ -1,0 +1,81 @@
+<%= render(PageHeaderComponent.new(
+  title: t("wizard.times.title"),
+  subtitle: @resource_type.name,
+  breadcrumbs: [["Calendar", root_path], ["Search", root_path], [t("wizard.times.title"), nil]]
+)) %>
+
+<%= form_with url: wizard_results_path, method: :get, class: "space-y-6" do |f| %>
+  <%= f.hidden_field :type_id, value: @type_id %>
+
+  <%# Date summary %>
+  <div class="bg-[#F7F5F0] rounded-lg px-4 py-3 text-sm">
+    <span class="text-muted"><%= t("wizard.times.dates_label") %></span>
+    <span class="font-medium">
+      <% if @start_date == @end_date %>
+        <%= @start_date.strftime("%-d %b %Y") %>
+      <% else %>
+        <%= @start_date.strftime("%-d %b") %> – <%= @end_date.strftime("%-d %b %Y") %>
+      <% end %>
+    </span>
+  </div>
+
+  <%# Checkout time (start day) %>
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header { content_tag(:h3, t("wizard.times.checkout_heading", date: @start_date.strftime("%-d %b")), class: "text-sm font-medium") } %>
+
+    <div class="flex items-center gap-4">
+      <div class="flex-1">
+        <label class="block text-xs text-muted mb-1"><%= t("wizard.times.hour_label") %></label>
+        <select name="start_hour" class="form-select w-full text-base">
+          <% (0..23).each do |h| %>
+            <option value="<%= h %>" <%= 'selected' if h == 8 %>><%= h.to_s.rjust(2, '0') %></option>
+          <% end %>
+        </select>
+      </div>
+      <span class="text-lg text-muted mt-4">:</span>
+      <div class="flex-1">
+        <label class="block text-xs text-muted mb-1"><%= t("wizard.times.minute_label") %></label>
+        <select name="start_min" class="form-select w-full text-base">
+          <% [0, 15, 30, 45].each do |m| %>
+            <option value="<%= m %>"><%= m.to_s.rjust(2, '0') %></option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+    <%= f.hidden_field :start_date, value: @start_date %>
+  <% end %>
+
+  <%# Return time (end day) %>
+  <%= render(CardComponent.new) do |card| %>
+    <% card.with_header { content_tag(:h3, t("wizard.times.return_heading", date: @end_date.strftime("%-d %b")), class: "text-sm font-medium") } %>
+
+    <div class="flex items-center gap-4">
+      <div class="flex-1">
+        <label class="block text-xs text-muted mb-1"><%= t("wizard.times.hour_label") %></label>
+        <select name="end_hour" class="form-select w-full text-base">
+          <% (0..23).each do |h| %>
+            <option value="<%= h %>" <%= 'selected' if h == 18 %>><%= h.to_s.rjust(2, '0') %></option>
+          <% end %>
+        </select>
+      </div>
+      <span class="text-lg text-muted mt-4">:</span>
+      <div class="flex-1">
+        <label class="block text-xs text-muted mb-1"><%= t("wizard.times.minute_label") %></label>
+        <select name="end_min" class="form-select w-full text-base">
+          <% [0, 15, 30, 45].each do |m| %>
+            <option value="<%= m %>"><%= m.to_s.rjust(2, '0') %></option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+    <%= f.hidden_field :end_date, value: @end_date %>
+  <% end %>
+
+  <%# Sticky bottom action bar %>
+  <div class="sticky bottom-0 -mx-8 px-4 py-4 bg-white border-t border-card-border">
+    <button type="submit"
+            class="w-full py-3.5 rounded-xl bg-[#6B7C60] text-white text-sm font-medium">
+      <%= t("wizard.times.submit_button") %>
+    </button>
+  </div>
+<% end %>

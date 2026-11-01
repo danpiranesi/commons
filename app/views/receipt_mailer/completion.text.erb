@@ -1,0 +1,35 @@
+Kvittering for din reservation
+
+Ressource:   <%= @resource.display_name %>
+Periode:     <%= @booking.start_at.strftime("%d.%m.%Y %H:%M") %> – <%= @period_end.strftime("%d.%m.%Y %H:%M") %>
+<% if @returned_off_booking -%>
+Booket:      <%= @booking.start_at.strftime("%d.%m.%Y %H:%M") %> – <%= @booking.end_at.strftime("%d.%m.%Y %H:%M") %>
+<% end -%>
+<% if @booking.end_mileage.present? && @booking.start_mileage.present? -%>
+Kilometer:   <%= @booking.km_driven %> km (<%= @booking.start_mileage %> → <%= @booking.end_mileage %>)
+<% end -%>
+
+Tid (<%= number_with_precision(@booking.billed_hours, precision: 1, separator: ",", strip_insignificant_zeros: true) %> t): <%= number_to_currency(@breakdown.time_cost, unit: "", precision: 2) %> DKK
+<% if @breakdown.km_cost > 0 -%>
+Kilometer:   <%= number_to_currency(@breakdown.km_cost, unit: "", precision: 2) %> DKK
+<% end -%>
+<% if @breakdown.toll_cost > 0 -%>
+Broafgift:   <%= number_to_currency(@breakdown.toll_cost, unit: "", precision: 2) %> DKK
+<% end -%>
+<% if @breakdown.accessory_cost > 0 -%>
+Tilbehør:    <%= number_to_currency(@breakdown.accessory_cost, unit: "", precision: 2) %> DKK
+<% end -%>
+<% if @rate&.per_km? -%>
+Statens takst: <%= @rate.km %> km x <%= number_to_currency(@rate.value, unit: "", precision: 2) %> DKK
+<% elsif @rate&.multiplier? -%>
+Subtotal:    <%= number_to_currency(@base, unit: "", precision: 2) %> DKK
+Takst:       x<%= @rate.value.to_f %><% if @rate.category_name %> (<%= @rate.category_name %>)<% end %>
+<% end -%>
+-----------------------------------------
+I alt:       <%= number_to_currency(@amount, unit: "", precision: 2) %> DKK
+
+<% if @billed_to_group -%>
+Denne tur er booket på vegne af <%= @billed_to_group %> og opkræves via gruppen.
+<% else -%>
+Beløbet er trukket fra din konto.
+<% end -%>

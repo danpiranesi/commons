@@ -1,0 +1,70 @@
+service: commons
+
+image: your-github-user/commons
+
+servers:
+  web:
+    hosts:
+      - 203.0.113.10
+    options:
+      publish:
+        - "127.0.0.1:3000:80"
+    proxy: false
+
+registry:
+  server: ghcr.io
+  username: your-github-user
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  secret:
+    - RAILS_MASTER_KEY
+    - POSTGRES_PASSWORD
+    - DISCOURSE_CONNECT_PROVIDER_SECRET
+    - SMTP_PASSWORD
+  clear:
+    SOLID_QUEUE_IN_PUMA: true
+    DB_HOST: commons-db
+    RAILS_LOG_LEVEL: info
+    DISCOURSE_BASE_URL: https://forum.example.org
+    BOOKING_BASE_URL: https://booking.example.org
+    # Outgoing email (receipts + monthly summary). SMTP_PASSWORD is in .kamal/secrets.
+    SMTP_ADDRESS: smtp.example.org
+    SMTP_PORT: "587"
+    SMTP_USER_NAME: noreply@example.org
+    SMTP_DOMAIN: example.org
+    SMTP_AUTHENTICATION: plain
+
+ssh:
+  user: deploy
+  keys:
+    - ~/.ssh/id_ed25519
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
+
+volumes:
+  - "commons_storage:/rails/storage"
+
+asset_path: /rails/public/assets
+
+builder:
+  arch: amd64
+
+accessories:
+  db:
+    image: postgres:16
+    host: 203.0.113.10
+    port: "127.0.0.1:5433:5432"
+    env:
+      clear:
+        POSTGRES_DB: commons_production
+        POSTGRES_USER: commons
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data

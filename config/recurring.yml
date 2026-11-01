@@ -1,0 +1,26 @@
+# examples:
+#   periodic_cleanup:
+#     class: CleanSoftDeletedRecordsJob
+#     queue: background
+#     args: [ 1000, { batch_size: 500 } ]
+#     schedule: every hour
+#   periodic_cleanup_with_command:
+#     command: "SoftDeletedRecord.due.delete_all"
+#     priority: 2
+#     schedule: at 5am every day
+
+production:
+  clear_solid_queue_finished_jobs:
+    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+
+  # Previous month's kørsel summary to the bookkeeper, 09:00 on the 10th.
+  monthly_koersel_summary:
+    class: MonthlySummaryJob
+    schedule: "0 9 10 * *"
+
+  # Bikes and other non-odometer resources are never checked out, so their
+  # bookings are closed automatically once the booked end time passes.
+  auto_complete_bookings:
+    class: AutoCompleteBookingsJob
+    schedule: every 15 minutes

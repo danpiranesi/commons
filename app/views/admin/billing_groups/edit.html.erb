@@ -1,0 +1,5 @@
+<%= render(PageHeaderComponent.new(title: t("admin.billing_groups.edit_title", name: @group.name))) %>
+<div class="max-w-lg space-y-4">
+  <%= render "form" %>
+  <%= render "members" %>
+</div>

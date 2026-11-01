@@ -1,0 +1,47 @@
+<%# Where the trip is going. The curated list is offered as suggestions
+    (grouped, including rough driving distances), and anything can be typed
+    instead. Ticking the box books the trip without saying where. Admins can turn
+    the suggestions off on the settings page. %>
+<% private_marker = Booking::PRIVATE_DESTINATION %>
+<% is_private = f.object.private_destination? %>
+<% show_list = SiteSetting.instance.destinations_enabled? %>
+<% list_id = "destination-suggestions" %>
+
+<div data-controller="destination-field">
+  <%= render(FormFieldComponent.new(label: t("bookings.form.destination_label"),
+        hint: t(show_list ? "bookings.form.destination_hint_list" : "bookings.form.destination_hint"),
+        required: true)) do %>
+    <%= f.text_field :destination,
+          value: (is_private ? "" : f.object.destination),
+          class: "form-input",
+          placeholder: t("bookings.form.destination_placeholder"),
+          autocomplete: "off",
+          list: (show_list ? list_id : nil),
+          data: { destination_field_target: "input" } %>
+  <% end %>
+
+  <% if show_list %>
+    <datalist id="<%= list_id %>">
+      <% destination_options.each do |group_name, entries| %>
+        <% entries.each do |label, value| %>
+          <option value="<%= value %>" label="<%= group_name %>"></option>
+        <% end %>
+      <% end %>
+    </datalist>
+  <% end %>
+
+  <%# Ticking this hides the text box and books the trip without a destination. %>
+  <div class="-mt-3 mb-4">
+    <label class="flex items-start gap-3 cursor-pointer">
+      <input type="checkbox" name="destination_private" value="1"
+             <%= "checked" if is_private %>
+             class="mt-0.5 rounded border-card-border text-sage focus:ring-sage/30"
+             data-destination-field-target="toggle"
+             data-action="change->destination-field#toggle">
+      <span>
+        <span class="text-sm font-medium"><%= t("bookings.form.destination_private_label") %></span>
+        <span class="block text-xs text-muted mt-0.5"><%= t("bookings.form.destination_private_hint") %></span>
+      </span>
+    </label>
+  </div>
+</div>

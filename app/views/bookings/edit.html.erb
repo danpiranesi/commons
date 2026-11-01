@@ -1,0 +1,115 @@
+<%= render "bookings/detail_header", editing: true %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+     data-controller="booking-form"
+     data-booking-form-resource-id-value="<%= @resource.id %>"
+     data-booking-form-preview-url-value="<%= price_preview_booking_path(@resource) %>">
+  <div class="lg:col-span-2">
+    <%= form_with model: @booking, url: booking_path(@booking), method: :patch, id: "booking-edit-form", class: "space-y-6" do |f| %>
+
+      <% if @booking.errors.any? %>
+        <div class="bg-danger/10 text-danger text-sm rounded-md px-4 py-3 border border-danger/20">
+          <ul class="list-disc list-inside text-xs">
+            <% @booking.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= render(CardComponent.new) do |card| %>
+        <% card.with_header do %>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-muted"><%= resource_icon(@resource.resource_type.icon) %></span>
+              <h3 class="text-sm font-medium"><%= booking_resource_title(@resource) %></h3>
+            </div>
+            <%= render(BadgeComponent.new(variant: booking_status_variant(@booking))) { @booking.status.humanize } %>
+          </div>
+        <% end %>
+
+        <%# Existing bookings on this day %>
+        <%= render "bookings/existing_bookings", existing_bookings: @existing_bookings %>
+
+        <%# Date/time pickers — 30 min intervals %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <%= render(FormFieldComponent.new(label: t("bookings.form.start_label"), required: true)) do %>
+            <%= render "bookings/time_picker", prefix: "booking_start", value: @booking.start_at %>
+          <% end %>
+
+          <%= render(FormFieldComponent.new(label: t("bookings.form.end_label"), required: true)) do %>
+            <%= render "bookings/time_picker", prefix: "booking_end", value: @booking.end_at %>
+          <% end %>
+        </div>
+
+        <%= render "bookings/billing_group_field", f: f %>
+
+        <% if @resource.tracks_mileage? %>
+          <%# Destination — vehicles only %>
+          <%= render "bookings/destination_field", f: f %>
+
+          <%# Ride sharing — vehicles only %>
+          <div class="mb-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <%= f.check_box :rideshare_available, class: "mt-0.5 rounded border-card-border text-sage focus:ring-sage/30" %>
+              <div>
+                <span class="text-sm font-medium"><%= t("bookings.form.rideshare_label") %></span>
+                <p class="text-xs text-muted mt-0.5"><%= t("bookings.form.rideshare_hint") %></p>
+              </div>
+            </label>
+          </div>
+
+        <% end %>
+
+        <%# May return early %>
+        <div class="mb-4">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <%= f.check_box :may_return_early, class: "mt-0.5 rounded border-card-border text-sage focus:ring-sage/30" %>
+            <div>
+              <span class="text-sm font-medium"><%= t("bookings.form.may_return_early_label") %></span>
+              <p class="text-xs text-muted mt-0.5"><%= t("bookings.form.may_return_early_hint") %></p>
+            </div>
+          </label>
+        </div>
+
+        <%# Accessories & Tolls %>
+        <% sq = @booking.booking_accessories.includes(:accessory).inject({}) { |h, ba| h[ba.accessory_id] = ba.quantity; h } %>
+        <%= render "bookings/accessories_selector", available_accessories: @available_accessories, selected_ids: @booking.accessory_ids, selected_quantities: sq %>
+
+
+        <%# Notes — always shown, full width %>
+        <%= render(FormFieldComponent.new(label: t("bookings.form.notes_label"), hint: t("bookings.form.optional_hint"))) do %>
+          <%= f.text_area :notes, class: "form-textarea", rows: 2 %>
+        <% end %>
+      <% end %>
+
+      <%# Admin-only: hand the booking to another member, so it is theirs to scan,
+          is billed to them, and their receipt goes to them. %>
+      <% if admin? %>
+        <%= render "bookings/admin_user_picker", user: @booking.user,
+                   title: t("bookings.form.owner_title"), hint: t("bookings.form.owner_hint") %>
+      <% end %>
+
+      <div class="flex items-center justify-between">
+        <%= render(ButtonComponent.new(href: booking_path(@booking), variant: :ghost)) { t("bookings.form.cancel_button") } %>
+        <%= render(ButtonComponent.new(type: "submit")) { t("bookings.edit.submit_button") } %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Price preview sidebar %>
+  <div>
+    <%= render(CardComponent.new) do |card| %>
+      <% card.with_header do %>
+        <h3 class="text-sm font-medium"><%= t("bookings.form.estimated_cost") %></h3>
+      <% end %>
+
+      <% bridge_toll = (@booking.bridge_storebælt_qty.to_i * 50) + (@booking.bridge_øresund_qty.to_i * 50) %>
+      <% hours = @booking.hours %>
+      <% time_cost = @price ? @price.calculate_time_cost(hours) : 0 %>
+      <div data-booking-form-target="pricePreview">
+        <%= render "bookings/price_preview", hours: hours, price: @price || ResourcePrice.new(hour_rate: 0, day_rate: 0, min_charge: 0, day_cap_hours: 16), time_cost: time_cost, km_rate: @price&.km_rate || 0, tracks_mileage: @resource.tracks_mileage?, subtotal: time_cost + bridge_toll, total: time_cost + bridge_toll, bridge_toll: bridge_toll %>
+      </div>
+    <% end %>
+  </div>
+</div>
