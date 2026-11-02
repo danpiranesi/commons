@@ -282,6 +282,8 @@ and need no card. Create a Neon project with four databases named `commons`,
 Blueprint on Render pointing at your copy of this repository. Render reads
 `render.yaml`, asks for the four connection strings as `DATABASE_URL`,
 `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL` and `CABLE_DATABASE_URL`, and
-generates the secret key itself. The free Render instance goes to sleep after
+generates the secret key itself. Use Neon's direct connection strings rather
+than the pooled ones, since the schema is reloaded on every boot and the pooler
+is not meant for that kind of work. The free Render instance goes to sleep after
 fifteen minutes without visitors, so the first request after a quiet spell takes
 about a minute while it wakes up and reseeds.

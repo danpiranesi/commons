@@ -4,7 +4,7 @@
 # starts from a clean slate on every boot instead.
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   if [ -n "${DEMO_MODE:-}" ]; then
-    ./bin/rails db:schema:load db:seed
+    DISABLE_DATABASE_ENVIRONMENT_CHECK=1 ./bin/rails db:schema:load db:seed
   else
     ./bin/rails db:prepare
   fi

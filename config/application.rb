@@ -28,6 +28,8 @@ module Commons
     config.i18n.fallbacks = true
     # Display and interpret wall-clock times in Copenhagen; the DB stores UTC.
     config.time_zone = "Europe/Copenhagen"
+    # No uploads are resized anywhere, so skip the image processing dependency.
+    config.active_storage.variant_processor = :disabled
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end
