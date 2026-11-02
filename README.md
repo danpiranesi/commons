@@ -6,6 +6,10 @@ sharing collective in Denmark. This repository is a copy of that system with
 the community's names, domains and deployment details replaced by placeholders,
 published so that other communities can try it and build on it.
 
+A live demo runs at https://commons-demo.onrender.com. It needs no login, and
+everything in it is reset every hour. It sleeps when idle, so the first visit
+can take a minute to load.
+
 ## What it does
 
 Members book shared resources on a calendar. A resource type decides how a
