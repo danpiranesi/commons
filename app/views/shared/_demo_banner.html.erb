@@ -1,0 +1,12 @@
+<% if Rails.application.config.demo_mode %>
+  <% demo_car = Resource.joins(:resource_type).where(status: "active", resource_types: { billing_type: "per_day_and_km" }).order(:id).first %>
+  <div class="bg-admin text-white" role="status">
+    <div class="max-w-[1100px] mx-auto px-8 py-2 flex items-center justify-between gap-4 text-sm">
+      <span><%= t("demo.banner") %></span>
+      <% if demo_car %>
+        <%= link_to t("demo.try_qr"), vehicle_scan_path(demo_car.qr_token),
+              class: "shrink-0 px-3 py-1 rounded-md bg-white/15 hover:bg-white/25 font-medium text-white no-underline" %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

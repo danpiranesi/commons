@@ -8,6 +8,12 @@ class SessionsController < ApplicationController
     # the public schedule).
     session[:sso_return] = params[:return] if params[:return].present?
 
+    if Rails.application.config.demo_mode
+      sign_in_demo_guest
+      redirect_to session.delete(:sso_return).presence || root_path
+      return
+    end
+
     if Rails.application.config.discourse_dev_bypass
       dev_login
       return
@@ -50,6 +56,8 @@ class SessionsController < ApplicationController
       # Kiosk logout is local only — drop the booking session and return the wall
       # to its idle schedule, without killing the member's global Discourse SSO.
       redirect_to schedule_path
+    elsif Rails.application.config.demo_mode
+      redirect_to root_path
     elsif Rails.application.config.discourse_dev_bypass
       redirect_to login_path
     else

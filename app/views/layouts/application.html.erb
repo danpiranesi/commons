@@ -25,6 +25,8 @@
 
   <body class="min-h-screen flex flex-col bg-bg text-primary font-sans"
         <% if kiosk_mode? && logged_in? %>data-controller="idle" data-idle-timeout-value="300000" data-idle-logout-value="true"<% end %>>
+    <%= render "shared/demo_banner" %>
+
     <%# Shown only to an admin previewing the member view. Deliberately loud,
         since nothing else on the page reveals they are an admin. %>
     <% if current_user&.previewing_as_member %>

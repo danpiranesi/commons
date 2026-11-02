@@ -59,7 +59,7 @@ Rails.application.configure do
 
   # Host for links generated in mailer templates (receipts, recap) and *_url
   # helpers (e.g. QR-label scan URLs). Derived from the booking domain.
-  mailer_host = URI(ENV.fetch("BOOKING_BASE_URL", "https://booking.example.org")).host
+  mailer_host = URI(ENV.fetch("BOOKING_BASE_URL") { ENV.fetch("RENDER_EXTERNAL_URL", "https://booking.example.org") }).host
   config.action_mailer.default_url_options = { host: mailer_host, protocol: "https" }
 
   # Outgoing SMTP. Configured only when SMTP_ADDRESS is present, so a deploy
@@ -93,6 +93,6 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
-  config.hosts << URI(ENV.fetch("BOOKING_BASE_URL", "https://booking.example.org")).host
+  config.hosts << URI(ENV.fetch("BOOKING_BASE_URL") { ENV.fetch("RENDER_EXTERNAL_URL", "https://booking.example.org") }).host
   config.host_authorization = { exclude: ->(req) { req.path == "/up" } }   # let Kamal healthcheck through
 end

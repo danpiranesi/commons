@@ -45,11 +45,23 @@ class ApplicationController < ActionController::Base
   end
 
   def authenticate_user!
+    sign_in_demo_guest if !logged_in? && Rails.application.config.demo_mode
+
     unless logged_in?
       # Stash where they were headed (e.g. an open slot tapped on the wall
       # schedule) so SSO returns them there instead of the app root.
       redirect_to login_path(return: request.fullpath)
     end
+  end
+
+  # In demo mode every visitor gets their own throwaway admin account, so they
+  # can try everything without a login step. The hourly reset clears them out.
+  def sign_in_demo_guest
+    code = SecureRandom.hex(2).upcase
+    guest = User.create!(name: t("demo.guest_name", code: code), email: "guest-#{code.downcase}-#{SecureRandom.hex(4)}@demo.invalid",
+                         user_type: "resident", admin: true)
+    session[:user_id] = guest.id
+    @current_user = nil
   end
 
   def require_admin!

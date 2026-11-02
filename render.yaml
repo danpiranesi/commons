@@ -1,0 +1,27 @@
+# Render blueprint for a free public demo. Pair it with four free Neon
+# databases (app, cache, queue and cable) and paste their connection strings
+# in as the *_DATABASE_URL values when Render asks for them.
+services:
+  - type: web
+    name: commons-demo
+    runtime: docker
+    plan: free
+    dockerCommand: ./bin/rails server
+    healthCheckPath: /up
+    envVars:
+      - key: DEMO_MODE
+        value: "1"
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "true"
+      - key: RAILS_LOG_LEVEL
+        value: info
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: CACHE_DATABASE_URL
+        sync: false
+      - key: QUEUE_DATABASE_URL
+        sync: false
+      - key: CABLE_DATABASE_URL
+        sync: false

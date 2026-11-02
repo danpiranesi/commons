@@ -1,8 +1,13 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
+# When running the Rails server, prepare the database first. A demo deployment
+# starts from a clean slate on every boot instead.
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+  if [ -n "${DEMO_MODE:-}" ]; then
+    ./bin/rails db:schema:load db:seed
+  else
+    ./bin/rails db:prepare
+  fi
 fi
 
 exec "${@}"

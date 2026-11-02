@@ -420,6 +420,11 @@ en:
       start_in_past: "That start time is in the past. Pick a time from now on."
 
   # Home
+  demo:
+    banner: "This is a demo. Everything you do is visible to other visitors, and the data is reset every hour."
+    try_qr: "Try the QR flow"
+    guest_name: "Guest %{code}"
+
   # Billing types
   billing_types:
     per_day_and_km: "Per hour + km"

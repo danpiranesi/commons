@@ -24,3 +24,8 @@ production:
   auto_complete_bookings:
     class: AutoCompleteBookingsJob
     schedule: every 15 minutes
+<% if ENV["DEMO_MODE"].present? %>
+  demo_reset:
+    class: DemoResetJob
+    schedule: every hour at minute 0
+<% end %>

@@ -264,3 +264,24 @@ The image listens on port 80 behind Thruster, which handles asset caching and
 compression. `config/deploy.yml` disables Kamal's built in proxy, so the host is
 expected to run its own TLS termination in front of the container; delete the
 `proxy: false` line and the `publish` option to use Kamal's proxy instead.
+
+## Hosting a public demo
+
+Setting `DEMO_MODE=1` turns any deployment into a playground that needs no
+forum and no login. Every visitor is signed in automatically as a fresh guest
+with admin rights, a banner tells them that other visitors can see what they do,
+and a link in that banner opens the QR page for one of the cars so the scan flow
+can be tried from a phone without printing a sticker. No email is sent in demo
+mode. The database is reloaded from the seeds every time the app boots and once
+an hour while it is running, so nothing a visitor does lasts long.
+
+The repository includes a `render.yaml` for hosting such a demo on Render's
+free tier, with the database on Neon's free tier, which together cost nothing
+and need no card. Create a Neon project with four databases named `commons`,
+`commons_cache`, `commons_queue` and `commons_cable`, then create a new
+Blueprint on Render pointing at your copy of this repository. Render reads
+`render.yaml`, asks for the four connection strings as `DATABASE_URL`,
+`CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL` and `CABLE_DATABASE_URL`, and
+generates the secret key itself. The free Render instance goes to sleep after
+fifteen minutes without visitors, so the first request after a quiet spell takes
+about a minute while it wakes up and reseeds.

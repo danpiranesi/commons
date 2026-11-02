@@ -420,6 +420,11 @@ da:
       start_in_past: "Starttidspunktet ligger i fortiden. Vælg et tidspunkt fra nu af."
 
   # Home
+  demo:
+    banner: "Dette er en demo. Alt du gør kan ses af andre besøgende, og data nulstilles hver time."
+    try_qr: "Prøv QR-flowet"
+    guest_name: "Gæst %{code}"
+
   # Billing types
   billing_types:
     per_day_and_km: "Pr. time + km"
