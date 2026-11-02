@@ -112,7 +112,7 @@ module Admin
         recharge_until = Time.zone.parse(params[:recharge_until]) rescue nil
         if recharge_until
           @resource.start_recharge!(recharge_until)
-          redirect_to admin_resource_path(@resource), notice: t("admin.resources.notices.recharging_until", time: recharge_until.strftime('%H:%M on %-d %b'))
+          redirect_to admin_resource_path(@resource), notice: t("admin.resources.notices.recharging_until", time: recharge_until.strftime("%H:%M on %-d %b"))
         else
           redirect_to admin_resource_path(@resource), alert: t("admin.resources.alerts.recharge_time_required")
         end

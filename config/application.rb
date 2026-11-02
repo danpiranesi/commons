@@ -16,11 +16,7 @@ module Commons
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Share the session cookie across example.org subdomains (needed for archive forward_auth).
-    # Outside production the request host is used, since browsers drop a
-    # .example.org cookie on localhost.
-    _session_domain = Rails.env.production? ? ".example.org" : nil
-    config.session_store :cookie_store, key: "_commons_session", domain: _session_domain
+    config.session_store :cookie_store, key: "_commons_session"
 
     # Configuration for the application, engines, and railties goes here.
     #

@@ -420,23 +420,6 @@ en:
       start_in_past: "That start time is in the past. Pick a time from now on."
 
   # Home
-  home:
-    index:
-      greeting: "Good morning, %{name}"
-      subtitle: "Welcome to your community's digital home"
-    tiles:
-      forum:
-        title: "Forum"
-        description: "Community discussions and announcements"
-      bookings:
-        title: "Bookings"
-        description: "Reserve cars and rooms"
-      intranet:
-        title: "Intranet"
-        description: "Shared files and documents"
-    tile:
-      open: "Open"
-
   # Billing types
   billing_types:
     per_day_and_km: "Per hour + km"

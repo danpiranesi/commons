@@ -420,23 +420,6 @@ da:
       start_in_past: "Starttidspunktet ligger i fortiden. Vælg et tidspunkt fra nu af."
 
   # Home
-  home:
-    index:
-      greeting: "God morgen, %{name}"
-      subtitle: "Velkommen til jeres digitale fællesskab"
-    tiles:
-      forum:
-        title: "Forum"
-        description: "Fælles diskussioner og nyheder"
-      bookings:
-        title: "Bookinger"
-        description: "Reserver biler og lokaler"
-      intranet:
-        title: "Intranet"
-        description: "Fælles filer og dokumenter"
-    tile:
-      open: "Åbn"
-
   # Billing types
   billing_types:
     per_day_and_km: "Pr. time + km"

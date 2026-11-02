@@ -1,4 +1,7 @@
-# Resource Types
+# Sample data for a fresh development database. Safe to re-run: everything is
+# looked up before it is created, and the example bookings are only added when
+# there are none yet.
+
 car_type = ResourceType.find_or_create_by!(name: "Car") do |rt|
   rt.billing_type = "per_day_and_km"
   rt.icon = "car"
@@ -21,119 +24,84 @@ trailer_type = ResourceType.find_or_create_by!(name: "Trailer") do |rt|
   rt.sort_order = 3
 end
 
-# Sample resources
-cars = [
-  { name: "VW Transporter (AB 12 345)", description: "White 9-seater van" },
-  { name: "Peugeot 308 (CD 67 890)", description: "Blue station wagon" },
-  { name: "Toyota Yaris (EF 11 222)", description: "Red compact" },
-  { name: "Skoda Octavia (GH 33 444)", description: "Silver estate" },
-  { name: "Fiat Ducato (IJ 55 666)", description: "Large delivery van" },
-]
-
-cars.each do |attrs|
-  resource = Resource.find_or_create_by!(name: attrs[:name]) do |r|
-    r.resource_type = car_type
-    r.description = attrs[:description]
+# Prices are per user type. Residents pay the lower rate; employees the higher.
+def seed_resource(type, name:, description:, rates:, mileage: nil)
+  resource = Resource.find_or_create_by!(name: name) do |r|
+    r.resource_type = type
+    r.description = description
     r.status = "active"
   end
 
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "resident") do |rp|
-    rp.day_rate = 150
-    rp.km_rate = 0.50
-    rp.base_fee = 25
+  rates.each do |user_type, price|
+    ResourcePrice.find_or_create_by!(resource: resource, user_type: user_type.to_s) do |rp|
+      rp.hour_rate  = price[:hour]
+      rp.day_rate   = price[:day]
+      rp.km_rate    = price.fetch(:km, 0)
+      rp.min_charge = price.fetch(:min, 0)
+    end
   end
 
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "employee") do |rp|
-    rp.day_rate = 200
-    rp.km_rate = 0.75
-    rp.base_fee = 25
+  if mileage
+    ResourceStat.find_or_create_by!(resource: resource) do |rs|
+      rs.data = { "mileage" => mileage }
+    end
   end
 
-  ResourceStat.find_or_create_by!(resource: resource) do |rs|
-    rs.data = { "mileage" => rand(10_000..150_000) }
-  end
+  resource
 end
 
-bicycles = [
-  { name: "El-cykel #1", description: "Electric cargo bike" },
-  { name: "El-cykel #2", description: "Electric city bike" },
-  { name: "Ladcykel", description: "Cargo bike (manual)" },
-]
+car_rates = {
+  resident: { hour: 15, day: 150, km: 0.50, min: 25 },
+  employee: { hour: 20, day: 200, km: 0.75, min: 25 }
+}
 
-bicycles.each do |attrs|
-  resource = Resource.find_or_create_by!(name: attrs[:name]) do |r|
-    r.resource_type = bicycle_type
-    r.description = attrs[:description]
-    r.status = "active"
-  end
-
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "resident") do |rp|
-    rp.day_rate = 50
-    rp.km_rate = 0
-    rp.base_fee = 0
-  end
-
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "employee") do |rp|
-    rp.day_rate = 75
-    rp.km_rate = 0
-    rp.base_fee = 0
-  end
+[
+  [ "VW Transporter (AB 12 345)", "White 9-seater van", 84_000 ],
+  [ "Peugeot 308 (CD 67 890)", "Blue station wagon", 121_500 ],
+  [ "Toyota Yaris (EF 11 222)", "Red compact", 42_300 ],
+  [ "Skoda Octavia (GH 33 444)", "Silver estate", 97_800 ],
+  [ "Fiat Ducato (IJ 55 666)", "Large delivery van", 63_100 ]
+].each do |name, description, mileage|
+  seed_resource(car_type, name: name, description: description, rates: car_rates, mileage: mileage)
 end
 
-trailers = [
-  { name: "Trailer (stor)", description: "Large enclosed trailer" },
-  { name: "Trailer (lille)", description: "Small open trailer" },
-]
+bicycle_rates = {
+  resident: { hour: 5, day: 50 },
+  employee: { hour: 8, day: 75 }
+}
 
-trailers.each do |attrs|
-  resource = Resource.find_or_create_by!(name: attrs[:name]) do |r|
-    r.resource_type = trailer_type
-    r.description = attrs[:description]
-    r.status = "active"
-  end
-
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "resident") do |rp|
-    rp.day_rate = 100
-    rp.km_rate = 0
-    rp.base_fee = 0
-  end
-
-  ResourcePrice.find_or_create_by!(resource: resource, user_type: "employee") do |rp|
-    rp.day_rate = 150
-    rp.km_rate = 0
-    rp.base_fee = 0
-  end
+[
+  [ "E-bike 1", "Electric cargo bike" ],
+  [ "E-bike 2", "Electric city bike" ],
+  [ "Cargo bike", "Manual cargo bike" ]
+].each do |name, description|
+  seed_resource(bicycle_type, name: name, description: description, rates: bicycle_rates)
 end
 
-# Dev user (matches the Discourse SSO dev bypass)
-dev_user = User.find_or_create_by!(discourse_id: 1) do |u|
+trailer_rates = {
+  resident: { hour: 10, day: 100 },
+  employee: { hour: 15, day: 150 }
+}
+
+[
+  [ "Trailer (large)", "Large enclosed trailer" ],
+  [ "Trailer (small)", "Small open trailer" ]
+].each do |name, description|
+  seed_resource(trailer_type, name: name, description: description, rates: trailer_rates)
+end
+
+# The development login bypass signs in as discourse_id 1.
+alice = User.find_or_create_by!(discourse_id: 1) do |u|
   u.name = "Alice Admin"
   u.email = "alice@example.org"
   u.user_type = "resident"
   u.admin = true
 end
 
-# Booking periods
-BookingPeriod.find_or_create_by!(name: "Juni 2026") do |bp|
-  bp.start_date = Date.new(2026, 6, 1)
-  bp.end_date = Date.new(2026, 6, 30)
-  bp.opens_at = Date.new(2026, 5, 25)
-  bp.status = "open"
-end
-
-BookingPeriod.find_or_create_by!(name: "Juli 2026") do |bp|
-  bp.start_date = Date.new(2026, 7, 1)
-  bp.end_date = Date.new(2026, 7, 31)
-  bp.opens_at = Date.new(2026, 6, 25)
-  bp.status = "scheduled"
-end
-
-# Sample members
 bob = User.find_or_create_by!(discourse_id: 2) do |u|
   u.name = "Bob"
   u.email = "bob@example.org"
   u.user_type = "resident"
-  u.admin = true
 end
 
 carol = User.find_or_create_by!(discourse_id: 3) do |u|
@@ -148,64 +116,27 @@ dave = User.find_or_create_by!(discourse_id: 4) do |u|
   u.user_type = "employee"
 end
 
-# Sample bookings for this week
-today = Date.current
-period = BookingPeriod.find_by(status: "open")
-all_cars = Resource.joins(:resource_type).where(resource_types: { name: "Car" })
-all_bikes = Resource.joins(:resource_type).where(resource_types: { name: "Bicycle" })
-
 if Booking.count == 0
-  # First car tomorrow
-  Booking.create!(
-    user: dev_user,
-    resource: all_cars.first,
-    booking_period: period,
-    start_at: (today + 1.day).to_time.change(hour: 8),
-    end_at: (today + 1.day).to_time.change(hour: 18),
-    status: "active"
-  )
+  today = Date.current
+  cars = Resource.joins(:resource_type).where(resource_types: { name: "Car" }).order(:id)
+  bikes = Resource.joins(:resource_type).where(resource_types: { name: "Bicycle" }).order(:id)
+  trailer = Resource.joins(:resource_type).where(resource_types: { name: "Trailer" }).order(:id).first
+  saturday = today.end_of_week(:monday) - 1.day
 
-  # Second car for 3 days starting today
-  Booking.create!(
-    user: bob,
-    resource: all_cars.second,
-    booking_period: period,
-    start_at: today.to_time.change(hour: 9),
-    end_at: (today + 2.days).to_time.change(hour: 17),
-    status: "active"
-  )
-
-  # Third car today
-  Booking.create!(
-    user: carol,
-    resource: all_cars.third,
-    booking_period: period,
-    start_at: today.to_time.change(hour: 7),
-    end_at: today.to_time.change(hour: 20),
-    status: "active"
-  )
-
-  # A bike across this week
-  Booking.create!(
-    user: dave,
-    resource: all_bikes.first,
-    booking_period: period,
-    start_at: (today - 1.day).to_time.change(hour: 8),
-    end_at: (today + 3.days).to_time.change(hour: 18),
-    status: "active"
-  )
-
-  # A trailer this weekend
-  trailer = Resource.joins(:resource_type).where(resource_types: { name: "Trailer" }).first
-  weekend_start = today.end_of_week(:monday) - 1.day # Saturday
-  Booking.create!(
-    user: dev_user,
-    resource: trailer,
-    booking_period: period,
-    start_at: weekend_start.to_time.change(hour: 8),
-    end_at: (weekend_start + 1.day).to_time.change(hour: 20),
-    status: "active"
-  )
+  [
+    { user: alice, resource: cars.first, start_at: (today + 1.day).to_time.change(hour: 8),
+      end_at: (today + 1.day).to_time.change(hour: 18), destination: "Hardware store" },
+    { user: bob, resource: cars.second, start_at: today.to_time.change(hour: 9),
+      end_at: (today + 2.days).to_time.change(hour: 17), destination: "Family visit" },
+    { user: carol, resource: cars.third, start_at: today.to_time.change(hour: 7),
+      end_at: today.to_time.change(hour: 20), destination: "Hospital" },
+    { user: dave, resource: bikes.first, start_at: (today - 1.day).to_time.change(hour: 8),
+      end_at: (today + 3.days).to_time.change(hour: 18) },
+    { user: alice, resource: trailer, start_at: saturday.to_time.change(hour: 8),
+      end_at: (saturday + 1.day).to_time.change(hour: 20) }
+  ].each do |attrs|
+    Booking.create!(attrs.merge(status: "active", creating_admin: true))
+  end
 end
 
-puts "Seeded: #{ResourceType.count} resource types, #{Resource.count} resources, #{User.count} users, #{Booking.count} bookings, #{BookingPeriod.count} booking periods"
+puts "Seeded #{ResourceType.count} resource types, #{Resource.count} resources, #{User.count} users and #{Booking.count} bookings"

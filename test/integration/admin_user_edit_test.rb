@@ -80,5 +80,4 @@ class AdminUserEditTest < ActionDispatch::IntegrationTest
     assert_equal "Pinned", @member.name, "kept until the next login"
     refute @member.name_set_by_admin?
   end
-
 end

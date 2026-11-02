@@ -30,7 +30,7 @@ class ReservationCompletionsController < ApplicationController
       preview = ReservationCompletionService.preview(booking: booking, ending_reading: params[:ending_reading])
       if preview.success?
         @resource, @booking, @preview = resource, booking, preview
-        @return_to = params[:return_to]
+        @return_to = safe_internal_path(params[:return_to])
         return render :confirm
       else
         return redirect_to return_path(resource), alert: error_message(preview)

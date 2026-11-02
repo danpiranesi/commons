@@ -1,6 +1,5 @@
 source "https://rubygems.org"
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.3"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
@@ -16,23 +15,21 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Use Tailwind CSS [https://github.com/rails/tailwindcss-rails]
 gem "tailwindcss-rails"
-# Build JSON APIs with ease [https://github.com/rails/jbuilder]
-gem "jbuilder"
 # ViewComponent for reusable UI components
 gem "view_component"
 # Rails i18n locale data (Danish, etc.)
 gem "rails-i18n", "~> 8.0"
 
-# Rate-limit the public QR scan path against token brute-forcing (spec §1)
+# Rate-limits the public QR scan path
 gem "rack-attack"
 
-# QR code + printable vehicle labels (Part 12)
-gem "rqrcode"   # generates QR matrix; rendered as Prawn rectangles (no PNG dep needed)
-gem "prawn"     # pure-Ruby PDF generation for labels
-gem "prawn-table" # grid layout for batch label sheets
-
-# Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+# QR codes and printable vehicle labels, all in pure Ruby
+gem "rqrcode"
+gem "prawn"
+gem "prawn-table"
+# Standard library gems that are no longer shipped with Ruby
+gem "csv"
+gem "matrix"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -51,8 +48,6 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-# Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.2"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -71,12 +66,6 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
-end
-
-group :test do
-  # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
-  gem "capybara"
-  gem "selenium-webdriver"
 end
 
 # Monthly summary sheet as a real spreadsheet (pure Ruby, no native deps)

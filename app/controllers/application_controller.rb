@@ -62,6 +62,6 @@ class ApplicationController < ActionController::Base
   # path (never an off-site "//host" redirect). Used so the shared end/extend
   # controllers can return to whichever page invoked them (QR page vs dashboard).
   def safe_internal_path(path)
-    path if path.is_a?(String) && path.start_with?("/") && !path.start_with?("//")
+    path if path.is_a?(String) && path.start_with?("/") && !path.start_with?("//", "/\\")
   end
 end

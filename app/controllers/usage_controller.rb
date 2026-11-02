@@ -45,5 +45,4 @@ class UsageController < ApplicationController
       end
     end
   end
-
 end

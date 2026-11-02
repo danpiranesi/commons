@@ -168,9 +168,9 @@ class ReservationCompletionService
   def start_odometer
     @start_odometer ||= if @booking.checked_in? && @booking.start_mileage
                           @booking.start_mileage
-                        else
+    else
                           resource.current_odometer || @booking.start_mileage
-                        end
+    end
   end
 
   def validate_odometer

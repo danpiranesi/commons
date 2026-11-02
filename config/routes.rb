@@ -5,7 +5,6 @@ Rails.application.routes.draw do
   # Authentication
   get "login", to: "sessions#new", as: :login
   get "auth/callback", to: "sessions#callback", as: :sso_callback
-  get "auth/archive_verify", to: "auth/archive#verify"
   delete "logout", to: "sessions#destroy", as: :logout
 
   # Admin

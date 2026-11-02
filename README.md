@@ -83,7 +83,7 @@ suppliers and printers drift over time.
 
 ## Technical choices
 
-The app is written in Ruby on Rails 8 on Ruby 3.2 and uses PostgreSQL. The
+The app is written in Ruby on Rails 8 on Ruby 3.4 and uses PostgreSQL. The
 interface is server rendered HTML that uses Hotwire for its interactive parts,
 and it is styled with Tailwind. There is no separate
 frontend build and no single page app. Every screen is available in both Danish
@@ -176,11 +176,91 @@ The order of these steps matters. Identity comes first and portable records
 come second, while permission and federation between places build on top of
 both. Each step is worth having on its own.
 
-## Development
+## Running it locally
 
-Run `bin/setup` to install dependencies and prepare the database. Run `bin/dev`
-to start the app, which then listens on http://localhost:3002. Run
-`bin/rails test` to run the full test suite.
+You need Ruby 3.4.9, which is the version pinned in `.ruby-version`, and a
+PostgreSQL server that your local user can connect to without a password. On a
+Mac with Homebrew, `brew install postgresql@16` followed by
+`brew services start postgresql@16` is enough. On Debian or Ubuntu, install
+`postgresql` and `libpq-dev`, then create a database role for your login with
+`sudo -u postgres createuser -s "$USER"`.
 
-When no SSO secret is configured, the app uses a development login bypass so
-that it can be worked on offline.
+With those in place, the setup script installs the gems, creates the
+development and test databases, loads the schema and seeds the sample data:
+
+```bash
+bin/setup --skip-server
+```
+
+Then start the app:
+
+```bash
+bin/dev
+```
+
+This runs the Rails server together with the Tailwind watcher, and the app is
+available at http://localhost:3000.
+
+Because no SSO secret is configured in development, visiting the login page
+signs you straight in as the seeded administrator, Alice Admin. The seeds also
+create three ordinary members and a handful of vehicles with sample bookings,
+so the calendar has something on it from the first page load. Running
+`bin/rails runner db/seeds/rideshare_demo.rb` adds a few upcoming trips for the
+rideshare feature.
+
+The test suite runs with:
+
+```bash
+bin/rails test
+```
+
+Running `bin/ci` performs the same checks as the CI workflow. It runs the linter
+and the security scanners before the test suite, and it finishes by reseeding
+the test database to make sure the seeds still load.
+
+## Configuration
+
+Everything that differs between installations is read from environment
+variables, so there is nothing to edit in the repository to run your own copy.
+
+`BOOKING_BASE_URL` is the public URL of this app. In production it sets the host
+used in email links and the only request host the app will answer to.
+`DISCOURSE_BASE_URL` is the URL of the Discourse forum that acts as the identity
+provider, and `DISCOURSE_CONNECT_PROVIDER_SECRET` is the DiscourseConnect
+provider secret shared with that forum. When the secret is blank in development
+or test, the login bypass described above is used instead.
+
+The production database is configured through `POSTGRES_PASSWORD` and `DB_HOST`,
+as `config/database.yml` shows. Outgoing mail for receipts and the monthly
+summary is configured with `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USER_NAME`,
+`SMTP_PASSWORD`, `SMTP_DOMAIN` and `SMTP_AUTHENTICATION`, and no mail is sent at
+all while `SMTP_ADDRESS` is unset. `RAILS_MASTER_KEY` decrypts the credentials
+file in production.
+
+The repository ships without credentials. Run `bin/rails credentials:edit` once
+to generate `config/master.key` and an encrypted credentials file; the master
+key stays out of git.
+
+Single sign on is set up on the Discourse side under the setting
+"enable discourse connect provider", with this app's `BOOKING_BASE_URL` as the
+allowed return domain and the same secret in both places. Members are created
+on their first login. Which forum groups are allowed in is decided in
+`app/services/discourse_sso.rb`, and `bin/rails forum:import[export.csv]` can
+pre-create accounts from a Discourse user export so an administrator can fill in
+their billing details before they first log in.
+
+## Deploying
+
+Production runs as a Docker image shipped by [Kamal](https://kamal-deploy.org)
+to a single host, with PostgreSQL as a Kamal accessory on the same machine.
+`config/deploy.yml` is a complete example with placeholder hosts and
+registry details, and `.kamal/secrets.example` lists the secrets Kamal expects.
+Copy it to `.kamal/secrets`, fill in the values, adjust `config/deploy.yml` to
+your host and registry, and run `kamal setup` for the first deploy and
+`kamal deploy` after that. Migrations run automatically when the container
+boots.
+
+The image listens on port 80 behind Thruster, which handles asset caching and
+compression. `config/deploy.yml` disables Kamal's built in proxy, so the host is
+expected to run its own TLS termination in front of the container; delete the
+`proxy: false` line and the `publish` option to use Kamal's proxy instead.
